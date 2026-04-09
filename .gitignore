@@ -356,7 +356,6 @@ Python/config.py
 *.pyc
 *.cmake
 *.cc
-*.swift
 lib/constants/api_keys.dart
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,flutter,android,dart,visualstudiocode,node
