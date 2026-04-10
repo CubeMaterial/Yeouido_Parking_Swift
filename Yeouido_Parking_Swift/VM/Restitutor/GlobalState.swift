@@ -1,0 +1,1 @@
+var userLoginStatus: Bool = false
