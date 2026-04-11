@@ -8,12 +8,34 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(GlobalState.self) private var globalState
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if globalState.userLoginStatus {
+                VStack(spacing: 16) {
+                    Image(systemName: "person.crop.circle.fill.badge.checkmark")
+                        .font(.system(size: 52))
+                        .foregroundStyle(.blue)
+
+                    Text("로그인 완료")
+                        .font(.title2.bold())
+
+                    Text(globalState.currentUserEmail)
+                        .foregroundStyle(.secondary)
+
+                    Button("로그아웃") {
+                        globalState.logout()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Color.blue)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            } else {
+                LoginView()
+            }
         }
         .padding()
     }
@@ -21,4 +43,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environment(GlobalState())
 }
