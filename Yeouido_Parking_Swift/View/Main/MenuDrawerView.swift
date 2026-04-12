@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MenuDrawerView: View {
+    @EnvironmentObject private var globalState: GlobalState
     @Binding var isPresented: Bool
     @Binding var isDarkModeEnabled: Bool
 
@@ -35,6 +36,12 @@ struct MenuDrawerView: View {
                     Text("메뉴")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(.black)
+
+                    UserInfoCard(
+                        isLoggedIn: globalState.userLoginStatus,
+                        name: globalState.currentUserName,
+                        email: globalState.currentUserEmail
+                    )
 
                     VStack(spacing: 14) {
                         DrawerMenuButton(
@@ -106,9 +113,57 @@ private struct DrawerMenuButton: View {
     }
 }
 
+private struct UserInfoCard: View {
+    let isLoggedIn: Bool
+    let name: String
+    let email: String
+
+    private var displayName: String {
+        if !name.isEmpty {
+            return name
+        }
+
+        return isLoggedIn ? "로그인 사용자" : "로그인 필요"
+    }
+
+    private var displayEmail: String {
+        if isLoggedIn, !email.isEmpty {
+            return email
+        }
+
+        return "채팅문의와 예약 기능은 로그인 후 이용 가능합니다."
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: isLoggedIn ? "person.crop.circle.fill" : "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 30))
+                .foregroundStyle(Color(hex: "2F4858"))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayName)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.black)
+
+                Text(displayEmail)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.black.opacity(0.58))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 18)
+        .background(Color.white.opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
 #Preview {
     MenuDrawerView(
         isPresented: .constant(true),
         isDarkModeEnabled: .constant(false)
     )
+    .environmentObject(GlobalState())
 }
