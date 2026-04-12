@@ -11,6 +11,7 @@ struct MenuDrawerView: View {
     @EnvironmentObject private var globalState: GlobalState
     @Binding var isPresented: Bool
     @Binding var isDarkModeEnabled: Bool
+    let onLoginTap: () -> Void
     @State private var isCustomerInfoPresented = false
 
     var body: some View {
@@ -101,6 +102,32 @@ struct MenuDrawerView: View {
                             .padding(.horizontal, 18)
                             .padding(.vertical, 18)
                             .background(Color.red.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.bottom, 16)
+                    } else {
+                        Button {
+                            onLoginTap()
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                isPresented = false
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: "person.badge.key.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Color(hex: "1C6DD0"))
+                                    .frame(width: 22)
+
+                                Text("로그인 하기")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(Color(hex: "1C6DD0"))
+
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 18)
+                            .background(Color(hex: "EEF5FF"))
                             .clipShape(RoundedRectangle(cornerRadius: 20))
                         }
                         .buttonStyle(.plain)
@@ -278,7 +305,8 @@ private struct UserInfoCard: View {
 #Preview {
     MenuDrawerView(
         isPresented: .constant(true),
-        isDarkModeEnabled: .constant(false)
+        isDarkModeEnabled: .constant(false),
+        onLoginTap: {}
     )
     .environmentObject(GlobalState())
 }

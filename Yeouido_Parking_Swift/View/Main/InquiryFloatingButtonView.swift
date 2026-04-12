@@ -9,6 +9,7 @@ import SwiftUI
 
 struct InquiryFloatingButtonView: View {
     @Binding var isExpanded: Bool
+    let isCompact: Bool
     let onCallTap: () -> Void
     let onChatTap: () -> Void
 
@@ -37,19 +38,39 @@ struct InquiryFloatingButtonView: View {
                     isExpanded.toggle()
                 }
             } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: isExpanded ? "xmark" : "bubble.left.and.bubble.right.fill")
-                        .font(.system(size: 16, weight: .bold))
+                Group {
+                    if isCompact {
+                        VStack(spacing: 4) {
+                            Image(systemName: isExpanded ? "xmark" : "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 17, weight: .bold))
 
-                    Text("문의하기")
-                        .font(.system(size: 15, weight: .bold))
+                            Text("문의")
+                                .font(.system(size: 14, weight: .bold))
+
+                            Text("하기")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(width: 72, height: 72)
+                        .background(Color(hex: "ED9781"))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
+                    } else {
+                        HStack(spacing: 8) {
+                            Image(systemName: isExpanded ? "xmark" : "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 16, weight: .bold))
+
+                            Text("문의하기")
+                                .font(.system(size: 15, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 54)
+                        .background(Color(hex: "ED9781"))
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
+                    }
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
-                .frame(height: 54)
-                .background(Color(hex: "ED9781"))
-                .clipShape(Capsule())
-                .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
             }
             .buttonStyle(.plain)
         }
@@ -88,6 +109,7 @@ private struct FloatingActionItem: View {
 
         InquiryFloatingButtonView(
             isExpanded: .constant(true),
+            isCompact: false,
             onCallTap: {},
             onChatTap: {}
         )

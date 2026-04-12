@@ -6,6 +6,7 @@ import SwiftUI
 final class GlobalState: ObservableObject {
     private enum StorageKey {
         static let userLoginStatus = "userLoginStatus"
+        static let currentUserID = "currentUserID"
         static let currentUserEmail = "currentUserEmail"
         static let currentUserName = "currentUserName"
         static let currentUserPhone = "currentUserPhone"
@@ -14,6 +15,7 @@ final class GlobalState: ObservableObject {
     }
 
     @Published var userLoginStatus = false
+    @Published var currentUserID: Int?
     @Published var currentUserEmail = ""
     @Published var currentUserName = ""
     @Published var currentUserPhone = ""
@@ -27,6 +29,9 @@ final class GlobalState: ObservableObject {
     init() {
         let defaults = UserDefaults.standard
         userLoginStatus = defaults.bool(forKey: StorageKey.userLoginStatus)
+        if defaults.object(forKey: StorageKey.currentUserID) != nil {
+            currentUserID = defaults.integer(forKey: StorageKey.currentUserID)
+        }
         currentUserEmail = defaults.string(forKey: StorageKey.currentUserEmail) ?? ""
         currentUserName = defaults.string(forKey: StorageKey.currentUserName) ?? ""
         currentUserPhone = defaults.string(forKey: StorageKey.currentUserPhone) ?? ""
@@ -45,6 +50,7 @@ final class GlobalState: ObservableObject {
     }
 
     func logout() {
+        currentUserID = nil
         currentUserEmail = ""
         currentUserName = ""
         currentUserPhone = ""
@@ -63,6 +69,11 @@ final class GlobalState: ObservableObject {
     private func persistUserSession() {
         let defaults = UserDefaults.standard
         defaults.set(userLoginStatus, forKey: StorageKey.userLoginStatus)
+        if let currentUserID {
+            defaults.set(currentUserID, forKey: StorageKey.currentUserID)
+        } else {
+            defaults.removeObject(forKey: StorageKey.currentUserID)
+        }
         defaults.set(currentUserEmail, forKey: StorageKey.currentUserEmail)
         defaults.set(currentUserName, forKey: StorageKey.currentUserName)
         defaults.set(currentUserPhone, forKey: StorageKey.currentUserPhone)
@@ -73,6 +84,7 @@ final class GlobalState: ObservableObject {
     private func clearUserSession() {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: StorageKey.userLoginStatus)
+        defaults.removeObject(forKey: StorageKey.currentUserID)
         defaults.removeObject(forKey: StorageKey.currentUserEmail)
         defaults.removeObject(forKey: StorageKey.currentUserName)
         defaults.removeObject(forKey: StorageKey.currentUserPhone)
