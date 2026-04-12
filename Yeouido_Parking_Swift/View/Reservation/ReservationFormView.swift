@@ -124,6 +124,12 @@ struct ReservationFormView: View {
             return
         }
         
+        guard let userID = globalState.currentUserID else {
+            alertMessage = "로그인 사용자 정보를 확인할 수 없습니다."
+            showAlert = true
+            return
+        }
+
         Task {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -132,7 +138,7 @@ struct ReservationFormView: View {
             let endString = formatter.string(from: endDate)
             
             let result = await vm.createReservation(
-                userId: globalState.currentUserId,
+                userId: userID,
                 facilityId: facility.id,
                 startDate: startString,
                 endDate: endString
@@ -147,4 +153,3 @@ struct ReservationFormView: View {
         }
     }
 }
-
