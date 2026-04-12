@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2B73AB8C2F8BC5AF008FCA60 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B73AB8B2F8BC5AF008FCA60 /* FirebaseCore */; };
-		2B73AB8E2F8BC5C5008FCA60 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 2B73AB8D2F8BC5C5008FCA60 /* FirebaseStorage */; };
+		2B73AB9A2F8BC7DB008FCA60 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B73AB992F8BC7DB008FCA60 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,7 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B73AB8C2F8BC5AF008FCA60 /* FirebaseCore in Frameworks */,
-				2B73AB8E2F8BC5C5008FCA60 /* FirebaseStorage in Frameworks */,
+				2B73AB9A2F8BC7DB008FCA60 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,7 +81,7 @@
 			name = Yeouido_Parking_Swift;
 			packageProductDependencies = (
 				2B73AB8B2F8BC5AF008FCA60 /* FirebaseCore */,
-				2B73AB8D2F8BC5C5008FCA60 /* FirebaseStorage */,
+				2B73AB992F8BC7DB008FCA60 /* FirebaseFirestore */,
 			);
 			productName = Yeouido_Parking_Swift;
 			productReference = 0478E5FF2F864A780041396C /* Yeouido_Parking_Swift.app */;
@@ -372,10 +372,10 @@
 			package = 2B73AB7F2F8BC0E4008FCA60 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCore;
 		};
-		2B73AB8D2F8BC5C5008FCA60 /* FirebaseStorage */ = {
+		2B73AB992F8BC7DB008FCA60 /* FirebaseFirestore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2B73AB7F2F8BC0E4008FCA60 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

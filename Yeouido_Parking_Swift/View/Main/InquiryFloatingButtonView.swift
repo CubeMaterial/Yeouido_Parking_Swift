@@ -20,6 +20,7 @@ struct InquiryFloatingButtonView: View {
                     title: "채팅문의",
                     systemName: "message.fill",
                     backgroundColor: Color(hex: "63C9F2"),
+                    isCompact: isCompact,
                     action: onChatTap
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -28,6 +29,7 @@ struct InquiryFloatingButtonView: View {
                     title: "전화하기",
                     systemName: "phone.fill",
                     backgroundColor: Color(hex: "75B992"),
+                    isCompact: isCompact,
                     action: onCallTap
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -51,9 +53,9 @@ struct InquiryFloatingButtonView: View {
                                 .font(.system(size: 14, weight: .bold))
                         }
                         .foregroundStyle(.white)
-                        .frame(width: 72, height: 72)
+                        .frame(width: 78, height: 68)
                         .background(Color(hex: "ED9781"))
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
                         .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
                     } else {
                         HStack(spacing: 8) {
@@ -81,25 +83,61 @@ private struct FloatingActionItem: View {
     let title: String
     let systemName: String
     let backgroundColor: Color
+    let isCompact: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: systemName)
-                    .font(.system(size: 14, weight: .bold))
+            Group {
+                if isCompact {
+                    VStack(spacing: 4) {
+                        Image(systemName: systemName)
+                            .font(.system(size: 17, weight: .bold))
 
-                Text(title)
-                    .font(.system(size: 14, weight: .bold))
+                        Text(compactTitleLine1)
+                            .font(.system(size: 14, weight: .bold))
+
+                        if let compactTitleLine2 {
+                            Text(compactTitleLine2)
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                    }
+                    .frame(width: 72, height: 72)
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: systemName)
+                            .font(.system(size: 14, weight: .bold))
+
+                        Text(title)
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 46)
+                    .clipShape(Capsule())
+                }
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .frame(height: 46)
             .background(backgroundColor)
-            .clipShape(Capsule())
+            .clipShape(isCompact ? AnyShape(RoundedRectangle(cornerRadius: 24)) : AnyShape(Capsule()))
             .shadow(color: .black.opacity(0.12), radius: 10, y: 6)
         }
         .buttonStyle(.plain)
+    }
+
+    private var compactTitleLine1: String {
+        if title == "채팅문의" {
+            return "채팅"
+        }
+
+        return "전화"
+    }
+
+    private var compactTitleLine2: String? {
+        if title == "채팅문의" {
+            return "문의"
+        }
+
+        return "하기"
     }
 }
 

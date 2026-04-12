@@ -7,6 +7,9 @@ import FirebaseFirestore
 enum ChatServiceError: LocalizedError {
     case firebaseUnavailable
     case invalidUser
+    case timeout
+    case permissionDenied
+    case message(String)
 
     var errorDescription: String? {
         switch self {
@@ -14,6 +17,12 @@ enum ChatServiceError: LocalizedError {
             return "Firebase 설정이 아직 연결되지 않았습니다."
         case .invalidUser:
             return "로그인 사용자 정보를 확인할 수 없습니다."
+        case .timeout:
+            return "채팅 서버 응답이 지연되고 있습니다. Firestore 규칙과 네트워크를 확인해 주세요."
+        case .permissionDenied:
+            return "Firestore 쓰기 권한이 없습니다. 보안 규칙을 확인해 주세요."
+        case .message(let message):
+            return message
         }
     }
 }
@@ -45,7 +54,8 @@ enum ChatFirestoreService {
 
     static func observeMessages(
         userID: Int,
-        onUpdate: @escaping ([ChatMessage]) -> Void
+        onUpdate: @escaping ([ChatMessage]) -> Void,
+        onError: @escaping (Error) -> Void = { _ in }
     ) -> ChatListenerToken {
         #if canImport(FirebaseFirestore)
         let listener = Firestore.firestore()
@@ -53,7 +63,12 @@ enum ChatFirestoreService {
             .document(conversationID(for: userID))
             .collection("messages")
             .order(by: "createdAt", descending: false)
-            .addSnapshotListener { snapshot, _ in
+            .addSnapshotListener { snapshot, error in
+                if let error = mapFirestoreError(error) {
+                    onError(error)
+                    return
+                }
+
                 let messages = snapshot?.documents.compactMap { document in
                     mapMessage(id: document.documentID, data: document.data())
                 } ?? []
@@ -73,16 +88,34 @@ enum ChatFirestoreService {
         userID: Int,
         userEmail: String,
         userName: String,
-        text: String
-    ) async throws {
+        text: String,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
         #if canImport(FirebaseFirestore)
+        let callbackQueue = DispatchQueue(label: "ChatFirestoreService.sendMessage")
+        var didFinish = false
+
+        func finish(_ result: Result<Void, Error>) {
+            callbackQueue.sync {
+                guard !didFinish else { return }
+                didFinish = true
+                DispatchQueue.main.async {
+                    completion(result)
+                }
+            }
+        }
+
+        DispatchQueue.global().asyncAfter(deadline: .now() + 8) {
+            finish(.failure(ChatServiceError.timeout))
+        }
+
         let db = Firestore.firestore()
         let conversationID = conversationID(for: userID)
         let now = Date()
         let conversationRef = db.collection("chats").document(conversationID)
         let messagesRef = conversationRef.collection("messages")
 
-        try await conversationRef.setData([
+        conversationRef.setData([
             "userID": userID,
             "userEmail": userEmail,
             "userName": userName,
@@ -90,16 +123,27 @@ enum ChatFirestoreService {
             "createdAt": Timestamp(date: now),
             "updatedAt": Timestamp(date: now),
             "lastMessage": text
-        ], merge: true)
+        ], merge: true) { error in
+            if let error = mapFirestoreError(error) {
+                finish(.failure(error))
+                return
+            }
 
-        try await messagesRef.addDocument(data: [
-            "text": text,
-            "senderType": ChatSenderType.user.rawValue,
-            "senderUserID": userID,
-            "createdAt": Timestamp(date: now)
-        ])
+            messagesRef.addDocument(data: [
+                "text": text,
+                "senderType": ChatSenderType.user.rawValue,
+                "senderUserID": userID,
+                "createdAt": Timestamp(date: now)
+            ]) { error in
+                if let error = mapFirestoreError(error) {
+                    finish(.failure(error))
+                } else {
+                    finish(.success(()))
+                }
+            }
+        }
         #else
-        throw ChatServiceError.firebaseUnavailable
+        completion(.failure(ChatServiceError.firebaseUnavailable))
         #endif
     }
 
@@ -128,6 +172,18 @@ enum ChatFirestoreService {
             senderUserID: senderUserID,
             createdAt: createdAt
         )
+    }
+
+    private static func mapFirestoreError(_ error: Error?) -> Error? {
+        guard let error else { return nil }
+        let nsError = error as NSError
+
+        if nsError.domain == FirestoreErrorDomain,
+           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return ChatServiceError.permissionDenied
+        }
+
+        return ChatServiceError.message(nsError.localizedDescription)
     }
     #endif
 }

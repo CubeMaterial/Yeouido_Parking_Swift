@@ -49,7 +49,8 @@ struct ReservationListView: View {
             }
             .navigationTitle("예약 내역")
             .task {
-                await vm.fetchReservations(userId: globalState.currentUserId)
+                guard let userID = globalState.currentUserID else { return }
+                await vm.fetchReservations(userId: userID)
             }
         }
     }

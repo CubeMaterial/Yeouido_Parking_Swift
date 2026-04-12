@@ -9,13 +9,12 @@ struct ChatView: View {
     @State private var notice = ""
     @State private var isSending = false
     @State private var listenerToken: ChatListenerToken?
+    @State private var sendTimeoutWorkItem: DispatchWorkItem?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if !ChatFirestoreService.isFirebaseAvailable {
-                    unavailableView
-                } else if !notice.isEmpty && messages.isEmpty {
                     unavailableView
                 } else {
                     messagesList
@@ -115,9 +114,7 @@ struct ChatView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18))
 
                 Button {
-                    Task {
-                        await sendMessage()
-                    }
+                    sendMessage()
                 } label: {
                     Text(isSending ? "전송중" : "전송")
                         .font(.system(size: 15, weight: .bold))
@@ -151,13 +148,18 @@ struct ChatView: View {
         }
 
         listenerToken?.cancel()
-        listenerToken = ChatFirestoreService.observeMessages(userID: userID) { updatedMessages in
-            messages = updatedMessages
-        }
+        listenerToken = ChatFirestoreService.observeMessages(
+            userID: userID,
+            onUpdate: { updatedMessages in
+                messages = updatedMessages
+            },
+            onError: { error in
+                notice = error.localizedDescription
+            }
+        )
     }
 
-    @MainActor
-    private func sendMessage() async {
+    private func sendMessage() {
         let trimmed = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmed.isEmpty else { return }
@@ -169,19 +171,38 @@ struct ChatView: View {
         isSending = true
         notice = ""
 
-        do {
-            try await ChatFirestoreService.sendMessage(
-                userID: userID,
-                userEmail: globalState.currentUserEmail,
-                userName: globalState.currentUserName,
-                text: trimmed
-            )
-            messageText = ""
-        } catch {
-            notice = error.localizedDescription
+        let timeoutWorkItem = DispatchWorkItem {
+            if isSending {
+                isSending = false
+                notice = ChatServiceError.timeout.localizedDescription
+            }
         }
 
-        isSending = false
+        sendTimeoutWorkItem?.cancel()
+        sendTimeoutWorkItem = timeoutWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: timeoutWorkItem)
+
+        ChatFirestoreService.sendMessage(
+            userID: userID,
+            userEmail: globalState.currentUserEmail,
+            userName: globalState.currentUserName,
+            text: trimmed
+        ) { result in
+            DispatchQueue.main.async {
+                guard isSending else { return }
+
+                sendTimeoutWorkItem?.cancel()
+                sendTimeoutWorkItem = nil
+                isSending = false
+
+                switch result {
+                case .success:
+                    messageText = ""
+                case .failure(let error):
+                    notice = error.localizedDescription
+                }
+            }
+        }
     }
 }
 
