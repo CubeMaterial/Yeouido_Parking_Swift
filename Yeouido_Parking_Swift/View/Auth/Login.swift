@@ -207,7 +207,6 @@ struct LoginView: View {
         do {
             let response = try await AuthAPI.login(email: normalized, password: password)
             globalState.login(
-                userID: response.userID,
                 email: response.userEmail,
                 name: response.userName,
                 phone: response.userPhone,

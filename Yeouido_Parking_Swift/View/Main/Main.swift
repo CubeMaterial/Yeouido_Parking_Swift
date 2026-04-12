@@ -10,6 +10,7 @@ import UIKit
 
 struct MainView: View {
     @EnvironmentObject private var globalState: GlobalState
+    @State private var isLoginPresented = false
 
     init() {
         let appearance = UITabBarAppearance()
@@ -21,7 +22,7 @@ struct MainView: View {
     }
 
     var body: some View {
-        TabView(selection: $globalState.selectedMainTab) {
+        TabView(selection: selectedTabBinding) {
             HomeView()
                 .tag(MainTab.home)
                 .tabItem {
@@ -48,6 +49,25 @@ struct MainView: View {
         }
         .toolbarBackground(Color.white, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .fullScreenCover(isPresented: $isLoginPresented) {
+            LoginView()
+                .environmentObject(globalState)
+        }
+    }
+
+    private var selectedTabBinding: Binding<MainTab> {
+        Binding(
+            get: { globalState.selectedMainTab },
+            set: { newValue in
+                if newValue == .reservation && !globalState.userLoginStatus {
+                    isLoginPresented = true
+                    globalState.selectedMainTab = .home
+                    return
+                }
+
+                globalState.selectedMainTab = newValue
+            }
+        )
     }
 }
 
