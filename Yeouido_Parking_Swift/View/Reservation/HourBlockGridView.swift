@@ -29,7 +29,7 @@ struct HourBlockGridView: View {
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        .background(isSelected(hour) ? Color.black : Color.gray.opacity(0.08))
+                        .background(isSelected(hour) ? Color(hex: "ED9781") : Color.white)
                         .foregroundColor(disabled ? .gray : (isSelected(hour) ? .white : .black))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)

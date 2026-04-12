@@ -162,4 +162,12 @@ final class ReservationViewModel: ObservableObject {
         
         return nil
     }
+    
+    func cancelReservation(reservationId: Int) async {
+        do {
+            try await APIService.shared.cancelReservation(reservationId: reservationId)
+        } catch {
+            print("예약 취소 실패:", error)
+        }
+    }
 }

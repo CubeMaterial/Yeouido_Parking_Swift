@@ -13,30 +13,42 @@ struct FacilityView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                if vm.isLoading {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(vm.facilities) { facility in
-                                NavigationLink {
-                                    FacilityDetailView(facility: facility)
-                                } label: {
-                                    FacilityCardView(facility: facility)
+            ZStack{
+                LinearGradient(
+                    colors: [
+                        Color(hex: "63C9F2"),
+                        Color(hex: "75B992")
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                
+                VStack {
+                    if vm.isLoading {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(vm.facilities) { facility in
+                                    NavigationLink {
+                                        FacilityDetailView(facility: facility)
+                                    } label: {
+                                        FacilityCardView(facility: facility)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .padding()
                         }
-                        .padding()
                     }
                 }
-            }
-            .navigationTitle("시설 목록")
-            .task {
-                await vm.fetchFacilities()
+                .navigationTitle("시설 목록")
+                .task {
+                    await vm.fetchFacilities()
+                }
             }
         }
     }
