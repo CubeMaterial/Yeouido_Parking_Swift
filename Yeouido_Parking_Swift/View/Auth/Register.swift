@@ -2,21 +2,22 @@ import SwiftUI
 
 struct SignupView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var globalState: GlobalState
 
     @State private var email: String
     @State private var password: String
     @State private var confirmPassword: String
     @State private var name = ""
+    @State private var phoneNumber = ""
     @State private var verificationCode = ""
     @State private var sentVerificationCode = ""
     @State private var notice = ""
     @State private var isSubmitting = false
+    @State private var showSignupCompleteAlert = false
 
     init(prefilledEmail: String = "", prefilledPassword: String = "") {
         _email = State(initialValue: prefilledEmail)
         _password = State(initialValue: prefilledPassword)
-        _confirmPassword = State(initialValue: prefilledPassword)
+        _confirmPassword = State(initialValue: "")
     }
 
     var body: some View {
@@ -36,12 +37,10 @@ struct SignupView: View {
                     Spacer(minLength: 32)
 
                     VStack(spacing: 0) {
-                        SignupTopIllustration()
-
                         Text("회원가입")
                             .font(.system(size: 34, weight: .bold))
                             .foregroundColor(Color(hex: "#1F2937"))
-                            .padding(.top, 24)
+                            .padding(.top, 6)
 
                         Text("계정을 만들고 서비스를 이용해 보세요")
                             .font(.system(size: 17, weight: .medium))
@@ -62,14 +61,23 @@ struct SignupView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
 
+                            SignupInputField(
+                                placeholder: "전화번호",
+                                text: $phoneNumber,
+                                keyboardType: .phonePad
+                            )
+                            .textContentType(.telephoneNumber)
+
                             SignupSecureInputField(
                                 placeholder: "비밀번호",
-                                text: $password
+                                text: $password,
+                                fieldID: "signup-password"
                             )
 
                             SignupSecureInputField(
                                 placeholder: "비밀번호 확인",
-                                text: $confirmPassword
+                                text: $confirmPassword,
+                                fieldID: "signup-confirm-password"
                             )
 
                             Text("비밀번호는 8자 이상, 영문과 숫자를 모두 포함해야 합니다.")
@@ -161,6 +169,13 @@ struct SignupView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .alert("회원가입 완료", isPresented: $showSignupCompleteAlert) {
+            Button("확인") {
+                dismiss()
+            }
+        } message: {
+            Text("회원가입이 완료되었습니다.")
+        }
     }
 
     private var noticeColor: Color {
@@ -169,9 +184,15 @@ struct SignupView: View {
 
     private func sendVerificationCode() {
         let normalized = normalizedEmail(email)
+        let normalizedPhone = normalizedPhoneNumber(phoneNumber)
 
         guard isValidEmail(normalized) else {
             notice = "이메일 형식을 확인해 주세요."
+            return
+        }
+
+        guard isValidPhoneNumber(normalizedPhone) else {
+            notice = "전화번호를 확인해 주세요."
             return
         }
 
@@ -186,6 +207,7 @@ struct SignupView: View {
         }
 
         email = normalized
+        phoneNumber = normalizedPhone
         sentVerificationCode = String(format: "%06d", Int.random(in: 0...999999))
         notice = "\(normalized)로 인증 코드를 전송했습니다. 개발용 코드: \(sentVerificationCode)"
     }
@@ -194,9 +216,15 @@ struct SignupView: View {
     private func signup() async {
         let normalized = normalizedEmail(email)
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedPhone = normalizedPhoneNumber(phoneNumber)
 
         guard isValidEmail(normalized) else {
             notice = "이메일 형식을 확인해 주세요."
+            return
+        }
+
+        guard isValidPhoneNumber(normalizedPhone) else {
+            notice = "전화번호를 확인해 주세요."
             return
         }
 
@@ -227,10 +255,10 @@ struct SignupView: View {
             _ = try await AuthAPI.signup(
                 email: normalized,
                 password: password,
-                name: trimmedName
+                name: trimmedName,
+                phoneNumber: normalizedPhone
             )
-            let response = try await AuthAPI.login(email: normalized, password: password)
-            globalState.login(email: response.userEmail)
+            showSignupCompleteAlert = true
         } catch {
             notice = error.localizedDescription
         }
@@ -263,9 +291,14 @@ private struct SignupInputField: View {
 private struct SignupSecureInputField: View {
     let placeholder: String
     @Binding var text: String
+    let fieldID: String
 
     var body: some View {
         SecureField(placeholder, text: $text)
+            .id(fieldID)
+            .textContentType(.newPassword)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
             .font(.system(size: 18, weight: .medium))
             .foregroundColor(Color(hex: "#1F2937"))
             .padding(.horizontal, 20)
@@ -276,60 +309,6 @@ private struct SignupSecureInputField: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(Color.black.opacity(0.03), lineWidth: 1)
             )
-    }
-}
-
-private struct SignupTopIllustration: View {
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color(hex: "#EAF4FB"))
-                .frame(width: 180, height: 180)
-
-            VStack(spacing: 10) {
-                HStack(spacing: 18) {
-                    VStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.blue.opacity(0.9))
-                            .frame(width: 42, height: 52)
-                            .overlay(
-                                Text("P")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.white)
-                            )
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.green.opacity(0.75))
-                            .frame(width: 50, height: 8)
-                    }
-
-                    ZStack {
-                        Circle()
-                            .fill(Color.red.opacity(0.9))
-                            .frame(width: 42, height: 42)
-
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 14, height: 14)
-                    }
-
-                    VStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.green.opacity(0.8))
-                            .frame(width: 34, height: 34)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.green.opacity(0.75))
-                            .frame(width: 10, height: 28)
-                    }
-                }
-
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.green.opacity(0.22))
-                    .frame(width: 140, height: 16)
-            }
-        }
-        .frame(height: 170)
     }
 }
 
