@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ReservationListView: View {
     
+    @EnvironmentObject private var globalState: GlobalState
     @StateObject private var vm = ReservationViewModel()
     
     var body: some View {
@@ -48,7 +49,7 @@ struct ReservationListView: View {
             }
             .navigationTitle("예약 내역")
             .task {
-                await vm.fetchReservations(userId: 1)
+                await vm.fetchReservations(userId: globalState.currentUserId)
             }
         }
     }

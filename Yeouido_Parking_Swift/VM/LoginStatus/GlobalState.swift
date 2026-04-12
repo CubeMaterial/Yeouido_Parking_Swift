@@ -10,6 +10,7 @@ final class GlobalState: ObservableObject {
         static let currentUserName = "currentUserName"
         static let currentUserPhone = "currentUserPhone"
         static let currentUserDate = "currentUserDate"
+        static let currentUserId = "currentUserId"
     }
 
     @Published var userLoginStatus = false
@@ -17,6 +18,7 @@ final class GlobalState: ObservableObject {
     @Published var currentUserName = ""
     @Published var currentUserPhone = ""
     @Published var currentUserDate = ""
+    @Published var currentUserId: Int = 0
     @Published var selectedMainTab: MainTab = .home
     @Published var isRoutePresented = false
     @Published var selectedParkingLot: ParkingLot?
@@ -29,13 +31,15 @@ final class GlobalState: ObservableObject {
         currentUserName = defaults.string(forKey: StorageKey.currentUserName) ?? ""
         currentUserPhone = defaults.string(forKey: StorageKey.currentUserPhone) ?? ""
         currentUserDate = defaults.string(forKey: StorageKey.currentUserDate) ?? ""
+        currentUserId = defaults.integer(forKey: StorageKey.currentUserId)
     }
 
-    func login(email: String, name: String? = nil, phone: String? = nil, date: String? = nil) {
+    func login(email: String, name: String? = nil, phone: String? = nil, date: String? = nil, userId: Int? = nil) {
         currentUserEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         currentUserName = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         currentUserPhone = (phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         currentUserDate = (date ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        currentUserId = (userId ?? 0)
         userLoginStatus = true
         persistUserSession()
     }
@@ -45,6 +49,7 @@ final class GlobalState: ObservableObject {
         currentUserName = ""
         currentUserPhone = ""
         currentUserDate = ""
+        currentUserId = 0
         userLoginStatus = false
         clearUserSession()
     }
@@ -62,6 +67,7 @@ final class GlobalState: ObservableObject {
         defaults.set(currentUserName, forKey: StorageKey.currentUserName)
         defaults.set(currentUserPhone, forKey: StorageKey.currentUserPhone)
         defaults.set(currentUserDate, forKey: StorageKey.currentUserDate)
+        defaults.set(currentUserId, forKey: StorageKey.currentUserId)
     }
 
     private func clearUserSession() {
@@ -71,5 +77,6 @@ final class GlobalState: ObservableObject {
         defaults.removeObject(forKey: StorageKey.currentUserName)
         defaults.removeObject(forKey: StorageKey.currentUserPhone)
         defaults.removeObject(forKey: StorageKey.currentUserDate)
+        defaults.removeObject(forKey: StorageKey.currentUserId)
     }
 }
