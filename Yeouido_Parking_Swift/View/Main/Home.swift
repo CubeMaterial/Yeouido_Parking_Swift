@@ -71,6 +71,7 @@ struct HomeView: View {
 
                     ZStack {
                         Color.white
+                            .ignoresSafeArea(edges: .bottom)
 
                         ScrollView(showsIndicators: false) {
                             VStack(spacing: 14) {
@@ -193,7 +194,7 @@ struct HomeView: View {
                         .offset(x: isMenuPresented ? -292 : 0, y: isMenuPresented ? 18 : 0)
                     }
                     .padding(.trailing, 20)
-                    .padding(.bottom, 26)
+                    .padding(.bottom, 118)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .zIndex(4)
