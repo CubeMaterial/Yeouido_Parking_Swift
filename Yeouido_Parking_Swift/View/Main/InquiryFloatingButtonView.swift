@@ -47,7 +47,7 @@ struct InquiryFloatingButtonView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 18)
                 .frame(height: 54)
-                .background(Color(hex: "1C6DD0"))
+                .background(Color(hex: "ED9781"))
                 .clipShape(Capsule())
                 .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
             }
