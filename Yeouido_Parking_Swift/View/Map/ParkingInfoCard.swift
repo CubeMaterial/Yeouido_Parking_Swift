@@ -1,0 +1,69 @@
+//
+//  ParkingInfoCard.swift
+//  Yeouido_Parking_Swift
+//
+
+import SwiftUI
+
+struct ParkingInfoCard: View {
+    let parkingSpot: ParkingSpot
+    let availability: ParkingAvailability?
+    let isLoading: Bool
+    let errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(parkingSpot.shortDisplayName)
+                .font(.headline.weight(.bold))
+
+            Text(parkingSpot.address)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            if isLoading {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("잔여 대수를 불러오는 중입니다.")
+                        .font(.subheadline.weight(.medium))
+                }
+            } else if let availability {
+                Text("잔여대수 \(availability.availableSpots) / 전체대수 \(availability.totalSpots)")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(availability.availableSpots > 0 ? Color.blue : Color.red)
+            } else if let errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.red)
+            } else {
+                Text("잔여 대수 정보가 없습니다.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(18)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 22,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 22,
+                style: .continuous
+            )
+                .fill(Color.white.opacity(0.96))
+        )
+        .overlay(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 22,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 22,
+                style: .continuous
+            )
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.1), radius: 14, y: 8)
+    }
+}
