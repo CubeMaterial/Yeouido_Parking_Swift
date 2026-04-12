@@ -20,6 +20,7 @@ struct HomeView: View {
     @State private var parkingAvailability: [String: Int] = [:]
     @State private var isInquiryExpanded = false
     @State private var isLoginRequiredPresented = false
+    @State private var isChatPresented = false
 
     var body: some View {
         NavigationStack {
@@ -167,7 +168,10 @@ struct HomeView: View {
                     if isMenuPresented {
                         MenuDrawerView(
                             isPresented: $isMenuPresented,
-                            isDarkModeEnabled: $isDarkModeEnabled
+                            isDarkModeEnabled: $isDarkModeEnabled,
+                            onLoginTap: {
+                                isLoginRequiredPresented = true
+                            }
                         )
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                         .zIndex(3)
@@ -182,9 +186,11 @@ struct HomeView: View {
 
                         InquiryFloatingButtonView(
                             isExpanded: $isInquiryExpanded,
+                            isCompact: isMenuPresented,
                             onCallTap: openPhoneInquiry,
                             onChatTap: openChatInquiry
                         )
+                        .offset(x: isMenuPresented ? -292 : 0, y: isMenuPresented ? 18 : 0)
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 26)
@@ -203,6 +209,10 @@ struct HomeView: View {
             }
             .fullScreenCover(isPresented: $isLoginRequiredPresented) {
                 LoginView()
+                    .environmentObject(globalState)
+            }
+            .fullScreenCover(isPresented: $isChatPresented) {
+                ChatView()
                     .environmentObject(globalState)
             }
         }
@@ -253,6 +263,8 @@ struct HomeView: View {
             isLoginRequiredPresented = true
             return
         }
+
+        isChatPresented = true
     }
 }
 

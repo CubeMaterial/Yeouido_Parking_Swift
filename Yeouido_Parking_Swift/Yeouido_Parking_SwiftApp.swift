@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct Yeouido_Parking_SwiftApp: App {
     @StateObject private var globalState = GlobalState()
     @StateObject private var parkingLocationService = ParkingLocationService()
     @AppStorage("isDarkModeEnabled") private var isDarkModeEnabled = false
+
+    init() {
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {

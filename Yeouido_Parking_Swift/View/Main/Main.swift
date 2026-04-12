@@ -6,9 +6,19 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct MainView: View {
     @EnvironmentObject private var globalState: GlobalState
+
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
 
     var body: some View {
         TabView(selection: $globalState.selectedMainTab) {
@@ -36,6 +46,8 @@ struct MainView: View {
                     Label("시설", systemImage: "building.2.fill")
                 }
         }
+        .toolbarBackground(Color.white, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }
 
