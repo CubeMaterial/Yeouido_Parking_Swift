@@ -8,24 +8,30 @@
 import SwiftUI
 
 struct MainView: View {
+    @EnvironmentObject private var globalState: GlobalState
+
     var body: some View {
-        TabView {
+        TabView(selection: $globalState.selectedMainTab) {
             HomeView()
+                .tag(MainTab.home)
                 .tabItem {
                     Label("홈", systemImage: "house.fill")
                 }
 
             ReservationView()
+                .tag(MainTab.reservation)
                 .tabItem {
                     Label("예약", systemImage: "calendar")
                 }
 
             MapView()
+                .tag(MainTab.map)
                 .tabItem {
                     Label("지도", systemImage: "map.fill")
                 }
 
             FacilityView()
+                .tag(MainTab.facility)
                 .tabItem {
                     Label("시설", systemImage: "building.2.fill")
                 }
