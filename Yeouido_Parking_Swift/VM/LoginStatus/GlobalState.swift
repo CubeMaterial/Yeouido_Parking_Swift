@@ -1,9 +1,10 @@
-import Observation
+import Combine
+import Foundation
+import SwiftUI
 
-@Observable
-final class GlobalState {
-    var userLoginStatus = false
-    var currentUserEmail = ""
+final class GlobalState: ObservableObject {
+    @Published var userLoginStatus = false
+    @Published var currentUserEmail = ""
 
     func login(email: String) {
         currentUserEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)

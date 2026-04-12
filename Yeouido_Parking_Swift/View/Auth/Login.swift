@@ -38,7 +38,7 @@ private enum AuthStorage {
 }
 
 struct LoginView: View {
-    @Environment(GlobalState.self) private var globalState
+    @EnvironmentObject private var globalState: GlobalState
 
     @State private var email = ""
     @State private var password = ""
@@ -299,7 +299,9 @@ struct LoginView: View {
     }
 }
 
-#Preview {
-    LoginView()
-        .environment(GlobalState())
+struct LoginView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoginView()
+            .environmentObject(GlobalState())
+    }
 }
