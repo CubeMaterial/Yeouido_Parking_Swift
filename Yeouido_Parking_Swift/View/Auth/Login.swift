@@ -210,7 +210,8 @@ struct LoginView: View {
                 email: response.userEmail,
                 name: response.userName,
                 phone: response.userPhone,
-                date: response.userDate
+                date: response.userDate,
+                userId: response.userID
             )
         } catch AuthAPIError.notRegistered {
             pendingSignupEmail = normalized
