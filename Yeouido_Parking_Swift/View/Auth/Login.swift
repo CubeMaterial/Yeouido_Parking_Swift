@@ -206,7 +206,7 @@ struct LoginView: View {
 
         do {
             let response = try await AuthAPI.login(email: normalized, password: password)
-            globalState.login(email: response.userEmail)
+            globalState.login(email: response.userEmail, name: response.userName)
         } catch AuthAPIError.notRegistered {
             pendingSignupEmail = normalized
             pendingSignupPassword = password

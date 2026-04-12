@@ -19,6 +19,7 @@ struct HomeView: View {
     @State private var festivals: [FestivalItem] = []
     @State private var parkingAvailability: [String: Int] = [:]
     @State private var isInquiryExpanded = false
+    @State private var isLoginRequiredPresented = false
 
     var body: some View {
         NavigationStack {
@@ -200,6 +201,10 @@ struct HomeView: View {
                     .environmentObject(globalState)
                     .environmentObject(parkingLocationService)
             }
+            .fullScreenCover(isPresented: $isLoginRequiredPresented) {
+                LoginView()
+                    .environmentObject(globalState)
+            }
         }
     }
 
@@ -242,6 +247,11 @@ struct HomeView: View {
     private func openChatInquiry() {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
             isInquiryExpanded = false
+        }
+
+        guard globalState.userLoginStatus else {
+            isLoginRequiredPresented = true
+            return
         }
     }
 }
