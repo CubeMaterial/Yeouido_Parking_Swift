@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-private enum AuthAPIError: LocalizedError {
+enum AuthAPIError: LocalizedError {
     case notRegistered(String)
     case message(String)
     case invalidResponse
@@ -21,7 +21,7 @@ private enum AuthAPIError: LocalizedError {
     }
 }
 
-private enum AuthAPI {
+enum AuthAPI {
     static let baseURL = URL(string: "http://127.0.0.1:8000")!
 
     struct LoginRequest: Encodable {
@@ -155,18 +155,18 @@ private enum AuthAPI {
     }
 }
 
-private func normalizedEmail(_ value: String) -> String {
+func normalizedEmail(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 }
 
-private func isValidEmail(_ value: String) -> Bool {
+func isValidEmail(_ value: String) -> Bool {
     value.range(
         of: "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
         options: .regularExpression
     ) != nil
 }
 
-private func isValidSignupPassword(_ value: String) -> Bool {
+func isValidSignupPassword(_ value: String) -> Bool {
     value.range(
         of: "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*#?&]{8,}$",
         options: .regularExpression
@@ -314,7 +314,7 @@ struct LoginView: View {
             }
             .animation(.easeInOut(duration: 0.2), value: showSignupPrompt)
             .navigationDestination(isPresented: $showSignupPage) {
-                SignUpView(
+                SignupView(
                     prefilledEmail: pendingSignupEmail,
                     prefilledPassword: pendingSignupPassword
                 )
@@ -452,170 +452,6 @@ private struct ParkingHeaderArtwork: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-private struct SignUpView: View {
-    @EnvironmentObject private var globalState: GlobalState
-
-    private let prefilledEmail: String
-    private let prefilledPassword: String
-
-    @State private var signupEmail: String
-    @State private var signupPassword: String
-    @State private var signupName = ""
-    @State private var verificationCode = ""
-    @State private var sentVerificationCode = ""
-    @State private var signupNotice = ""
-    @State private var isSubmitting = false
-
-    init(prefilledEmail: String = "", prefilledPassword: String = "") {
-        self.prefilledEmail = prefilledEmail
-        self.prefilledPassword = prefilledPassword
-        _signupEmail = State(initialValue: prefilledEmail)
-        _signupPassword = State(initialValue: prefilledPassword)
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                TextField("이름", text: $signupName)
-                    .padding(.horizontal, 12)
-                    .frame(height: 46)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                TextField("이메일", text: $signupEmail)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 12)
-                    .frame(height: 46)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                SecureField("비밀번호", text: $signupPassword)
-                    .padding(.horizontal, 12)
-                    .frame(height: 46)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                Text("비밀번호는 8자 이상, 영문과 숫자를 모두 포함해야 합니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 10) {
-                    TextField("인증 코드", text: $verificationCode)
-                        .keyboardType(.numberPad)
-                        .padding(.horizontal, 12)
-                        .frame(height: 46)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                    Button("인증 요청") {
-                        sendVerificationCode()
-                    }
-                    .frame(height: 46)
-                    .padding(.horizontal, 12)
-                    .background(Color.orange)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-
-                if !signupNotice.isEmpty {
-                    Text(signupNotice)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Button {
-                    Task {
-                        await signup()
-                    }
-                } label: {
-                    Text("회원가입 완료")
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(Color.green)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .disabled(isSubmitting)
-            }
-            .padding(24)
-        }
-        .navigationTitle("회원가입")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            if signupEmail.isEmpty {
-                signupEmail = prefilledEmail
-            }
-
-            if signupPassword.isEmpty {
-                signupPassword = prefilledPassword
-            }
-        }
-    }
-
-    private func sendVerificationCode() {
-        let normalized = normalizedEmail(signupEmail)
-
-        guard isValidEmail(normalized) else {
-            signupNotice = "회원가입 이메일 형식을 확인해 주세요."
-            return
-        }
-
-        guard isValidSignupPassword(signupPassword) else {
-            signupNotice = "비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다."
-            return
-        }
-
-        signupEmail = normalized
-        sentVerificationCode = String(format: "%06d", Int.random(in: 0...999999))
-        signupNotice = "\(normalized)로 인증 코드를 전송했습니다. 개발용 코드: \(sentVerificationCode)"
-    }
-
-    @MainActor
-    private func signup() async {
-        let normalized = normalizedEmail(signupEmail)
-        let trimmedName = signupName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard isValidEmail(normalized) else {
-            signupNotice = "회원가입 이메일 형식을 확인해 주세요."
-            return
-        }
-
-        guard isValidSignupPassword(signupPassword) else {
-            signupNotice = "비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다."
-            return
-        }
-
-        guard !sentVerificationCode.isEmpty else {
-            signupNotice = "먼저 인증 요청을 진행해 주세요."
-            return
-        }
-
-        guard verificationCode == sentVerificationCode else {
-            signupNotice = "인증 코드가 일치하지 않습니다."
-            return
-        }
-
-        isSubmitting = true
-        signupNotice = ""
-
-        do {
-            _ = try await AuthAPI.signup(
-                email: normalized,
-                password: signupPassword,
-                name: trimmedName
-            )
-            let response = try await AuthAPI.login(email: normalized, password: signupPassword)
-            globalState.login(email: response.userEmail)
-        } catch {
-            signupNotice = error.localizedDescription
-        }
-
-        isSubmitting = false
     }
 }
 
