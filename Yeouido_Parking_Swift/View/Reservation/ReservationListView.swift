@@ -14,40 +14,68 @@ struct ReservationListView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoading {
-                    ProgressView()
-                } else if vm.reservations.isEmpty {
-                    VStack {
+            ZStack {
+                // 🔥 배경
+                LinearGradient(
+                    colors: [
+                        Color(hex: "63C9F2"),
+                        Color(hex: "75B992")
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                
+                VStack {
+                    if vm.isLoading {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                        
+                    } else if vm.reservations.isEmpty {
                         Spacer()
                         Text("예약 내역이 없습니다.")
                             .foregroundColor(.gray)
                         Spacer()
-                    }
-                } else {
-                    List(vm.reservations) { reservation in
-                        NavigationLink {
-                            ReservationDetailView(reservationId: reservation.id)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("예약번호 \(reservation.id)")
-                                    .font(.headline)
-                                
-                                Text("\(reservation.startDate)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                Text(stateText(reservation.state))
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
+                        
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(vm.reservations) { reservation in
+                                    
+                                    NavigationLink {
+                                        ReservationDetailView(reservationId: reservation.id)
+                                    } label: {
+                                        ReservationCardView(reservation: reservation)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
-                            .padding(.vertical, 4)
+                            .padding()
                         }
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("예약 내역")
+            
+            // 🔥 우상단 취소 버튼
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        cancelLatestReservation()
+                    } label: {
+                        Text("예약 취소")
+                            .font(.subheadline)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .background(Color.clear)
+            
             .task {
                 guard let userID = globalState.currentUserID else { return }
                 await vm.fetchReservations(userId: userID)
@@ -55,11 +83,14 @@ struct ReservationListView: View {
         }
     }
     
-    private func stateText(_ state: Int) -> String {
-        switch state {
-        case 0: return "취소"
-        case 1: return "완료"
-        default: return "알 수 없음"
+    // 🔥 간단 예시: 가장 최근 예약 취소
+    private func cancelLatestReservation() {
+        guard let last = vm.reservations.first else { return }
+        
+        Task {
+            await vm.cancelReservation(reservationId: last.id)
+            guard let userID = globalState.currentUserID else { return }
+            await vm.fetchReservations(userId: userID)
         }
     }
 }

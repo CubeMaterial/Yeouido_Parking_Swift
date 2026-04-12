@@ -24,73 +24,82 @@ struct ReservationFormView: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(facility.name)
-                        .font(.title2)
-                        .fontWeight(.bold)
+        ZStack{
+            LinearGradient(
+                colors: [
+                    Color(hex: "63C9F2"),
+                    Color(hex: "75B992")
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(facility.name)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Text(facility.info ?? "시설 설명 없음")
+                            .foregroundColor(.black)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Text(facility.info ?? "시설 설명 없음")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                DatePicker(
-                    "예약 날짜",
-                    selection: $selectedDate,
-                    in: Date()...,
-                    displayedComponents: .date
-                )
-                .onChange(of: selectedDate) { _, _ in
-                    selectedStartHour = nil
-                    selectedEndHour = nil
-                    Task {
-                        await loadDailyReservations()
+                    DatePicker(
+                        "예약 날짜",
+                        selection: $selectedDate,
+                        in: Date()...,
+                        displayedComponents: .date
+                    )
+                    .onChange(of: selectedDate) { _, _ in
+                        selectedStartHour = nil
+                        selectedEndHour = nil
+                        Task {
+                            await loadDailyReservations()
+                        }
                     }
-                }
-                
-                HourBlockGridView(
-                    selectedDate: selectedDate,
-                    reservedHours: vm.reservedHours,
-                    selectedStartHour: $selectedStartHour,
-                    selectedEndHour: $selectedEndHour
-                )
-                
-                if let start = selectedStartHour {
-                    if let end = selectedEndHour {
+                    
+                    HourBlockGridView(
+                        selectedDate: selectedDate,
+                        reservedHours: vm.reservedHours,
+                        selectedStartHour: $selectedStartHour,
+                        selectedEndHour: $selectedEndHour
+                    )
+                    
+                    if let start = selectedStartHour {
+                        let end = selectedEndHour ?? start
                         Text("선택 시간: \(String(format: "%02d:00", start)) ~ \(String(format: "%02d:00", end + 1))")
-                    } else {
-                        Text("시작 시간 선택됨: \(String(format: "%02d:00", start))")
                     }
+                    
+                    Button("예약하기") {
+                        submitReservation()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(hex: "ED9781"))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
                 }
-                
-                Button("예약하기") {
-                    submitReservation()
-                }
-                .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.black)
-                .foregroundColor(.white)
-                .cornerRadius(12)
             }
-            .padding()
-        }
-        .navigationTitle("예약하기")
-        .task {
-            await loadDailyReservations()
-        }
-        .navigationDestination(isPresented: $goToDetail) {
-            if let created = vm.createdReservation {
-                ReservationDetailView(reservationId: created.id)
-            } else {
-                EmptyView()
+            .navigationTitle("예약하기")
+            .task {
+                await loadDailyReservations()
             }
-        }
-        .alert("예약 불가", isPresented: $showAlert) {
-            Button("확인", role: .cancel) { }
-        } message: {
-            Text(alertMessage)
+            .navigationDestination(isPresented: $goToDetail) {
+                if let created = vm.createdReservation {
+                    ReservationDetailView(reservationId: created.id)
+                } else {
+                    EmptyView()
+                }
+            }
+            .alert("예약 불가", isPresented: $showAlert) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
         }
     }
     
@@ -105,11 +114,12 @@ struct ReservationFormView: View {
         let now = Date()
         let calendar = Calendar.current
         
-        guard let startHour = selectedStartHour, let endHour = selectedEndHour else {
-            alertMessage = "시작 시간과 종료 시간을 선택해주세요."
+        guard let startHour = selectedStartHour else {
+            alertMessage = "시작 시간을 선택해주세요."
             showAlert = true
             return
         }
+        let endHour = selectedEndHour ?? startHour
         
         guard let startDate = calendar.date(bySettingHour: startHour, minute: 0, second: 0, of: selectedDate),
               let endDate = calendar.date(bySettingHour: endHour + 1, minute: 0, second: 0, of: selectedDate) else {
