@@ -103,6 +103,9 @@ struct HomeView: View {
                                 .padding(.bottom, 24)
                             }
                         }
+                        .refreshable {
+                            await refreshHomeData()
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(
@@ -190,10 +193,7 @@ struct HomeView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
-                parkingLocationService.requestAuthorization()
-                await loadWeather()
-                await loadParkingAvailability()
-                await loadFestivals()
+                await refreshHomeData()
             }
             .fullScreenCover(isPresented: $globalState.isRoutePresented) {
                 RouteView()
@@ -225,6 +225,13 @@ struct HomeView: View {
         } catch {
             festivals = []
         }
+    }
+
+    private func refreshHomeData() async {
+        parkingLocationService.requestAuthorization()
+        await loadWeather()
+        await loadParkingAvailability()
+        await loadFestivals()
     }
 
     private func openPhoneInquiry() {
