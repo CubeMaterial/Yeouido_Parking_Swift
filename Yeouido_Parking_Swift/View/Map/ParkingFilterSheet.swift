@@ -6,14 +6,17 @@
 import SwiftUI
 
 struct ParkingFilterSheet: View {
+    private let selectedColor = Color(hex: "63C9F2")
+
     @Binding var searchText: String
+    @Binding var selectedFilter: MapMarkerFilter
     @Binding var selectedParkingSpotID: Int?
     @State private var sheetOffset: CGFloat = 0
 
-    let recentParkingSpots: [ParkingSpot]
-    let filteredParkingSpots: [ParkingSpot]
+    let filterOptions: [MapMarkerFilter]
+    let searchResults: [MapSearchResult]
     let onClose: () -> Void
-    let onFocus: (ParkingSpot) -> Void
+    let onResultSelect: (MapSearchResult) -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -28,7 +31,6 @@ struct ParkingFilterSheet: View {
                     dragIndicator
 
                     searchField
-                    selectedInfoRow
                     quickFilterRow
                     parkingList
                 }
@@ -92,63 +94,32 @@ struct ParkingFilterSheet: View {
         )
     }
 
-    private var selectedInfoRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                pill(text: "필터", foreground: .black, background: .white)
-
-                if let selectedParkingSpot {
-                    pill(
-                        text: "주차장 \(selectedParkingSpot.name)",
-                        foreground: Color.red,
-                        background: .white
-                    )
-                } else {
-                    pill(
-                        text: "주차장 선택 전",
-                        foreground: Color.black.opacity(0.6),
-                        background: Color(red: 0.97, green: 0.97, blue: 0.98)
-                    )
-                }
-            }
-            .padding(.vertical, 2)
-        }
-    }
-
     private var quickFilterRow: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("이전 검색 필터")
+            Text("필터")
                 .font(.system(size: 15, weight: .bold))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    if recentParkingSpots.isEmpty {
-                        Text("아직 선택한 필터가 없습니다.")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 2)
-                    } else {
-                        ForEach(recentParkingSpots) { spot in
-                            Button {
-                                selectedParkingSpotID = spot.id
-                                onFocus(spot)
-                            } label: {
-                                Text(spot.name)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(selectedParkingSpotID == spot.id ? .white : .black)
-                                    .padding(.horizontal, 14)
-                                    .frame(height: 42)
-                                    .background(
-                                        Capsule()
-                                            .fill(
-                                                selectedParkingSpotID == spot.id
-                                                    ? Color.black
-                                                    : Color(red: 0.95, green: 0.95, blue: 0.97)
-                                            )
-                                    )
-                            }
-                            .buttonStyle(.plain)
+                    ForEach(filterOptions) { filter in
+                        Button {
+                            selectedFilter = filter
+                        } label: {
+                            Text(filter.rawValue)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(selectedFilter == filter ? .white : .black)
+                                .padding(.horizontal, 14)
+                                .frame(height: 42)
+                                .background(
+                                    Capsule()
+                                        .fill(selectedFilter == filter ? selectedColor : .white)
+                                )
+                                .overlay(
+                                    Capsule()
+                                        .stroke(selectedFilter == filter ? selectedColor : .black, lineWidth: 1.2)
+                                )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, 2)
@@ -158,45 +129,54 @@ struct ParkingFilterSheet: View {
 
     private var parkingList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("주차장")
+            Text("검색 결과")
                 .font(.title3.weight(.bold))
 
             ScrollView {
-                VStack(spacing: 10) {
-                    ForEach(filteredParkingSpots) { spot in
-                        Button {
-                            onFocus(spot)
-                            onClose()
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("주차장")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(.secondary)
-                                    Text(spot.name)
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(.primary)
-                                }
-
-                                Spacer()
-
-                                if selectedParkingSpotID == spot.id {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(Color.red)
+                if searchResults.isEmpty {
+                    EmptyView()
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(searchResults) { result in
+                            Button {
+                                if case .parking(let spot) = result {
+                                    selectedParkingSpotID = spot.id
                                 } else {
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(.secondary)
+                                    selectedParkingSpotID = nil
                                 }
+                                onResultSelect(result)
+                                onClose()
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(result.categoryText)
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.secondary)
+                                        Text(result.title)
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                    }
+
+                                    Spacer()
+
+                                    if result.id == selectedResultID {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(Color.red)
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(height: 62)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(Color(red: 0.97, green: 0.97, blue: 0.98))
+                                )
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 62)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(Color(red: 0.97, green: 0.97, blue: 0.98))
-                            )
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -222,22 +202,10 @@ struct ParkingFilterSheet: View {
                 }
             }
     }
-
-    private var selectedParkingSpot: ParkingSpot? {
-        recentParkingSpots.first { $0.id == selectedParkingSpotID }
-            ?? filteredParkingSpots.first { $0.id == selectedParkingSpotID }
-    }
-
-    private func pill(text: String, foreground: Color, background: Color) -> some View {
-        Text(text)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(foreground)
-            .padding(.horizontal, 16)
-            .frame(height: 42)
-            .background(background, in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
-            )
+    private var selectedResultID: String? {
+        if let selectedParkingSpotID {
+            return "parking-\(selectedParkingSpotID)"
+        }
+        return nil
     }
 }

@@ -6,8 +6,12 @@
 import SwiftUI
 
 struct MapFilterBar: View {
+    private let selectedColor = Color(hex: "63C9F2")
+
+    let selectedFilter: MapMarkerFilter
     let selectedParkingSpot: ParkingSpot?
     let onFilterTap: () -> Void
+    let onFilterSelect: (MapMarkerFilter) -> Void
     let onSelectedSpotTap: (ParkingSpot) -> Void
 
     var body: some View {
@@ -24,9 +28,35 @@ struct MapFilterBar: View {
                     .padding(.horizontal, 18)
                     .frame(height: 48)
                     .background(Color.white, in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.black, lineWidth: 1.2)
+                    )
                 }
                 .buttonStyle(.plain)
                 .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+
+                ForEach(MapMarkerFilter.allCases) { filter in
+                    Button {
+                        onFilterSelect(filter)
+                    } label: {
+                        Text(filter.rawValue)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(selectedFilter == filter ? .white : .black)
+                            .padding(.horizontal, 16)
+                            .frame(height: 48)
+                            .background(
+                                Capsule()
+                                    .fill(selectedFilter == filter ? selectedColor : .white)
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(selectedFilter == filter ? selectedColor : .black, lineWidth: 1.2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+                }
 
                 if let selectedParkingSpot {
                     Button {
