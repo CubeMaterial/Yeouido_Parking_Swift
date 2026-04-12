@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(GlobalState.self) private var globalState
+    @EnvironmentObject private var globalState: GlobalState
 
     var body: some View {
         Group {
@@ -41,7 +41,9 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-        .environment(GlobalState())
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+            .environmentObject(GlobalState())
+    }
 }

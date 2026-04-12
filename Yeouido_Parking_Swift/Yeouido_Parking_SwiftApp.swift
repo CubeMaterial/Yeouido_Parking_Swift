@@ -9,12 +9,12 @@ import SwiftUI
 
 @main
 struct Yeouido_Parking_SwiftApp: App {
-    @State private var globalState = GlobalState()
+    @StateObject private var globalState = GlobalState()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(globalState)
+                .environmentObject(globalState)
         }
     }
 }
