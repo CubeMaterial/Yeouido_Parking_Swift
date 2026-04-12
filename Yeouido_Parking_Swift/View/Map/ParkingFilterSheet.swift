@@ -36,24 +36,33 @@ struct ParkingFilterSheet: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
-                .padding(.bottom, max(geometry.safeAreaInsets.bottom, 18))
+                .padding(.bottom, 0)
                 .frame(maxWidth: .infinity)
                 .frame(height: max(geometry.size.height - 96, 500), alignment: .top)
                 .background(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 28,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 28,
-                        style: .continuous
-                    )
-                    .fill(Color.white)
+                    ZStack(alignment: .bottom) {
+                        Rectangle()
+                            .fill(Color.white)
+                            .ignoresSafeArea(edges: .bottom)
+
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 28,
+                            bottomLeadingRadius: 0,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 28,
+                            style: .continuous
+                        )
+                        .fill(Color.white)
+                    }
                 )
                 .offset(y: max(sheetOffset, 0))
                 .gesture(sheetDragGesture)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(.container, edges: .bottom)
             }
+            .ignoresSafeArea(.container, edges: .bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 
     private var dragIndicator: some View {

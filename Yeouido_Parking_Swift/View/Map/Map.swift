@@ -53,16 +53,6 @@ struct MapView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
 
-                    if let facilityLoadMessage {
-                        Text(facilityLoadMessage)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.black.opacity(0.45), in: Capsule())
-                            .padding(.top, 8)
-                    }
-
                     Spacer()
 
                     if let selectedParkingSpot {
@@ -73,8 +63,37 @@ struct MapView: View {
                             errorMessage: availabilityErrorMessage
                         )
                         .padding(.horizontal, 16)
-                        .ignoresSafeArea(edges: .bottom)
+                        .padding(.bottom, 5)
+                    } else if let selectedReservableFacility {
+                        FacilityInfoCard(
+                            facility: selectedReservableFacility
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 5)
                     }
+                }
+
+                if isFilterSheetPresented {
+                    ParkingFilterSheet(
+                        searchText: $searchText,
+                        selectedFilter: $selectedFilter,
+                        selectedParkingSpotID: $selectedParkingSpotID,
+                        filterOptions: MapMarkerFilter.allCases,
+                        searchResults: filteredSearchResults,
+                        onClose: {
+                            isFilterSheetPresented = false
+                        },
+                        onResultSelect: { result in
+                            switch result {
+                            case .parking(let spot):
+                                select(spot)
+                            case .facility(let facility):
+                                select(facility)
+                            }
+                        }
+                    )
+                    .zIndex(10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,34 +103,6 @@ struct MapView: View {
             .task {
                 await loadFacilitiesIfNeeded()
             }
-            .fullScreenCover(isPresented: $isFilterSheetPresented) {
-                ParkingFilterSheet(
-                    searchText: $searchText,
-                    selectedFilter: $selectedFilter,
-                    selectedParkingSpotID: $selectedParkingSpotID,
-                    filterOptions: MapMarkerFilter.allCases,
-                    searchResults: filteredSearchResults,
-                    onClose: {
-                        isFilterSheetPresented = false
-                    },
-                    onResultSelect: { result in
-                        switch result {
-                        case .parking(let spot):
-                            select(spot)
-                        case .facility(let facility):
-                            selectedFacilityID = facility.id
-                            selectedParkingSpotID = nil
-                            cameraPosition = .region(
-                                MKCoordinateRegion(
-                                    center: facility.coordinate,
-                                    span: MKCoordinateSpan(latitudeDelta: 0.0045, longitudeDelta: 0.0045)
-                                )
-                            )
-                        }
-                    }
-                )
-                .presentationBackground(.clear)
-            }
         }
     }
 
@@ -120,7 +111,7 @@ struct MapView: View {
             ForEach(filteredFacilities) { facility in
                 Annotation(facility.name, coordinate: facility.coordinate, anchor: .bottom) {
                     Button {
-                        selectedFacilityID = facility.id
+                        select(facility)
                     } label: {
                         FacilityMarker(
                             title: facility.name,
@@ -221,6 +212,14 @@ struct MapView: View {
         parkingSpots.first { $0.id == selectedParkingSpotID }
     }
 
+    private var selectedReservableFacility: MapFacility? {
+        guard let selectedFacilityID else { return nil }
+
+        return facilities.first {
+            $0.id == selectedFacilityID && $0.isReservable
+        }
+    }
+
     private var filteredMapParkingSpots: [ParkingSpot] {
         switch selectedFilter {
         case .all, .parking:
@@ -248,6 +247,17 @@ struct MapView: View {
         selectedFacilityID = nil
         focus(on: spot)
         loadAvailability(for: spot)
+    }
+
+    private func select(_ facility: MapFacility) {
+        selectedFacilityID = facility.id
+        selectedParkingSpotID = nil
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: facility.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.0045, longitudeDelta: 0.0045)
+            )
+        )
     }
 
     private func focus(on spot: ParkingSpot) {

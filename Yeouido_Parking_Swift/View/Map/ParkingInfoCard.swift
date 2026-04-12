@@ -42,7 +42,6 @@ struct ParkingInfoCard: View {
             }
         }
         .padding(18)
-        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             UnevenRoundedRectangle(
@@ -64,6 +63,11 @@ struct ParkingInfoCard: View {
             )
                 .stroke(Color.black.opacity(0.05), lineWidth: 1)
         )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 1)
+        }
         .shadow(color: .black.opacity(0.1), radius: 14, y: 8)
     }
 }
