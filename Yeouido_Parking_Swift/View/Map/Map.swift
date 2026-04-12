@@ -11,11 +11,14 @@ import SwiftUI
 struct MapView: View {
     @State private var searchText = ""
     @State private var isFilterSheetPresented = false
+    @State private var selectedFilter: MapMarkerFilter = .all
     @State private var selectedParkingSpotID: Int?
-    @State private var recentParkingSpotIDs: [Int] = []
+    @State private var selectedFacilityID: Int?
     @State private var availabilityBySourceName: [String: ParkingAvailability] = [:]
     @State private var isLoadingAvailability = false
     @State private var availabilityErrorMessage: String?
+    @State private var facilities: [MapFacility] = []
+    @State private var facilityLoadMessage: String?
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 37.5276, longitude: 126.9329),
@@ -34,9 +37,14 @@ struct MapView: View {
 
                 VStack(spacing: 0) {
                     MapFilterBar(
+                        selectedFilter: selectedFilter,
                         selectedParkingSpot: selectedParkingSpot,
                         onFilterTap: {
                             isFilterSheetPresented = true
+                        },
+                        onFilterSelect: { filter in
+                            selectedFilter = filter
+                            clearSelectionIfNeeded(for: filter)
                         },
                         onSelectedSpotTap: { spot in
                             select(spot)
@@ -44,6 +52,16 @@ struct MapView: View {
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
+
+                    if let facilityLoadMessage {
+                        Text(facilityLoadMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.45), in: Capsule())
+                            .padding(.top, 8)
+                    }
 
                     Spacer()
 
@@ -63,17 +81,33 @@ struct MapView: View {
             .background(Color(.systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isFilterSheetPresented)
+            .task {
+                await loadFacilitiesIfNeeded()
+            }
             .fullScreenCover(isPresented: $isFilterSheetPresented) {
                 ParkingFilterSheet(
                     searchText: $searchText,
+                    selectedFilter: $selectedFilter,
                     selectedParkingSpotID: $selectedParkingSpotID,
-                    recentParkingSpots: recentParkingSpots,
-                    filteredParkingSpots: filteredParkingSpots,
+                    filterOptions: MapMarkerFilter.allCases,
+                    searchResults: filteredSearchResults,
                     onClose: {
                         isFilterSheetPresented = false
                     },
-                    onFocus: { spot in
-                        select(spot)
+                    onResultSelect: { result in
+                        switch result {
+                        case .parking(let spot):
+                            select(spot)
+                        case .facility(let facility):
+                            selectedFacilityID = facility.id
+                            selectedParkingSpotID = nil
+                            cameraPosition = .region(
+                                MKCoordinateRegion(
+                                    center: facility.coordinate,
+                                    span: MKCoordinateSpan(latitudeDelta: 0.0045, longitudeDelta: 0.0045)
+                                )
+                            )
+                        }
                     }
                 )
                 .presentationBackground(.clear)
@@ -83,7 +117,22 @@ struct MapView: View {
 
     private var mapLayer: some View {
         Map(position: $cameraPosition) {
-            ForEach(parkingSpots) { spot in
+            ForEach(filteredFacilities) { facility in
+                Annotation(facility.name, coordinate: facility.coordinate, anchor: .bottom) {
+                    Button {
+                        selectedFacilityID = facility.id
+                    } label: {
+                        FacilityMarker(
+                            title: facility.name,
+                            isSelected: selectedFacilityID == facility.id,
+                            isReservable: facility.isReservable
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            ForEach(filteredMapParkingSpots) { spot in
                 Annotation(spot.name, coordinate: spot.coordinate, anchor: .bottom) {
                     Button {
                         select(spot)
@@ -126,30 +175,79 @@ struct MapView: View {
         return parkingSpots.filter { $0.name.localizedCaseInsensitiveContains(trimmedText) }
     }
 
+    private var filteredSearchResults: [MapSearchResult] {
+        let trimmedText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedText.isEmpty else {
+            return []
+        }
+
+        let parkingResults = parkingSpots.compactMap { spot -> MapSearchResult? in
+            guard spot.name.localizedCaseInsensitiveContains(trimmedText) else {
+                return nil
+            }
+            return .parking(spot)
+        }
+
+        let facilityResults = facilities.compactMap { facility -> MapSearchResult? in
+            let matchesText = facility.name.localizedCaseInsensitiveContains(trimmedText)
+                || (facility.info?.localizedCaseInsensitiveContains(trimmedText) ?? false)
+
+            guard matchesText else { return nil }
+
+            switch selectedFilter {
+            case .all:
+                return .facility(facility)
+            case .parking:
+                return nil
+            case .reservableFacility:
+                return facility.isReservable ? .facility(facility) : nil
+            case .otherFacility:
+                return facility.isReservable ? nil : .facility(facility)
+            }
+        }
+
+        switch selectedFilter {
+        case .all:
+            return parkingResults + facilityResults
+        case .parking:
+            return parkingResults
+        case .reservableFacility, .otherFacility:
+            return facilityResults
+        }
+    }
+
     private var selectedParkingSpot: ParkingSpot? {
         parkingSpots.first { $0.id == selectedParkingSpotID }
     }
 
-    private var recentParkingSpots: [ParkingSpot] {
-        recentParkingSpotIDs.compactMap { id in
-            parkingSpots.first(where: { $0.id == id })
+    private var filteredMapParkingSpots: [ParkingSpot] {
+        switch selectedFilter {
+        case .all, .parking:
+            return parkingSpots
+        case .reservableFacility, .otherFacility:
+            return []
+        }
+    }
+
+    private var filteredFacilities: [MapFacility] {
+        switch selectedFilter {
+        case .all:
+            return facilities
+        case .parking:
+            return []
+        case .reservableFacility:
+            return facilities.filter(\.isReservable)
+        case .otherFacility:
+            return facilities.filter { !$0.isReservable }
         }
     }
 
     private func select(_ spot: ParkingSpot) {
         selectedParkingSpotID = spot.id
-        registerRecentSpot(spot.id)
+        selectedFacilityID = nil
         focus(on: spot)
         loadAvailability(for: spot)
-    }
-
-    private func registerRecentSpot(_ id: Int) {
-        recentParkingSpotIDs.removeAll { $0 == id }
-        recentParkingSpotIDs.append(id)
-
-        if recentParkingSpotIDs.count > 3 {
-            recentParkingSpotIDs.removeFirst(recentParkingSpotIDs.count - 3)
-        }
     }
 
     private func focus(on spot: ParkingSpot) {
@@ -186,6 +284,45 @@ struct MapView: View {
                     isLoadingAvailability = false
                     availabilityErrorMessage = "잔여 대수를 불러오지 못했습니다."
                 }
+            }
+        }
+    }
+
+    private func loadFacilitiesIfNeeded() async {
+        guard facilities.isEmpty else { return }
+
+        do {
+            let fetchedFacilities = try await MapFacilityService.fetchAllFacilities()
+            await MainActor.run {
+                facilities = fetchedFacilities
+                facilityLoadMessage = "시설물 \(fetchedFacilities.count)개 표시"
+            }
+        } catch {
+            await MainActor.run {
+                facilityLoadMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func clearSelectionIfNeeded(for filter: MapMarkerFilter) {
+        switch filter {
+        case .all:
+            break
+        case .parking:
+            selectedFacilityID = nil
+        case .reservableFacility:
+            selectedParkingSpotID = nil
+            if let selectedFacilityID,
+               let selectedFacility = facilities.first(where: { $0.id == selectedFacilityID }),
+               !selectedFacility.isReservable {
+                self.selectedFacilityID = nil
+            }
+        case .otherFacility:
+            selectedParkingSpotID = nil
+            if let selectedFacilityID,
+               let selectedFacility = facilities.first(where: { $0.id == selectedFacilityID }),
+               selectedFacility.isReservable {
+                self.selectedFacilityID = nil
             }
         }
     }
