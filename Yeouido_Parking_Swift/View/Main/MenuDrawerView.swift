@@ -11,6 +11,7 @@ struct MenuDrawerView: View {
     @EnvironmentObject private var globalState: GlobalState
     @Binding var isPresented: Bool
     @Binding var isDarkModeEnabled: Bool
+    @State private var isCustomerInfoPresented = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -47,11 +48,13 @@ struct MenuDrawerView: View {
                         DrawerMenuButton(
                             title: "고객정보",
                             systemName: "person.text.rectangle"
-                        )
+                        ) {
+                            isCustomerInfoPresented = true
+                        }
                         DrawerMenuButton(
                             title: "예약내역",
                             systemName: "calendar.badge.clock"
-                        )
+                        ) {}
 
                         HStack(spacing: 14) {
                             Image(systemName: "moon.fill")
@@ -75,6 +78,34 @@ struct MenuDrawerView: View {
                     }
 
                     Spacer()
+
+                    if globalState.userLoginStatus {
+                        Button {
+                            globalState.logout()
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                isPresented = false
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.red)
+                                    .frame(width: 22)
+
+                                Text("로그아웃")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(.red)
+
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 18)
+                            .background(Color.red.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.bottom, 16)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .frame(width: min(280, geometry.size.width * 0.74))
@@ -83,6 +114,27 @@ struct MenuDrawerView: View {
                 .shadow(color: .black.opacity(0.14), radius: 18, x: -8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+            .overlay {
+                if isCustomerInfoPresented {
+                    ZStack {
+                        Color.black.opacity(0.18)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                isCustomerInfoPresented = false
+                            }
+
+                        CustomerInfoPopupView(
+                            isPresented: $isCustomerInfoPresented,
+                            isLoggedIn: globalState.userLoginStatus,
+                            name: globalState.currentUserName,
+                            email: globalState.currentUserEmail,
+                            phone: globalState.currentUserPhone,
+                            signupDate: globalState.currentUserDate
+                        )
+                        .padding(24)
+                    }
+                }
+            }
         }
     }
 }
@@ -90,9 +142,10 @@ struct MenuDrawerView: View {
 private struct DrawerMenuButton: View {
     let title: String
     let systemName: String
+    let action: () -> Void
 
     var body: some View {
-        Button(action: {}) {
+        Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: systemName)
                     .font(.system(size: 18))
@@ -109,6 +162,68 @@ private struct DrawerMenuButton: View {
             .padding(.vertical, 18)
             .background(Color.white.opacity(0.9))
             .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+}
+
+private struct CustomerInfoPopupView: View {
+    @Binding var isPresented: Bool
+    let isLoggedIn: Bool
+    let name: String
+    let email: String
+    let phone: String
+    let signupDate: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("고객정보")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.black)
+
+                Spacer()
+
+                Button {
+                    isPresented = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.black)
+                }
+            }
+
+            if isLoggedIn {
+                InfoRow(title: "이름", value: name.isEmpty ? "-" : name)
+                InfoRow(title: "이메일", value: email.isEmpty ? "-" : email)
+                InfoRow(title: "전화번호", value: phone.isEmpty ? "-" : phone)
+                InfoRow(title: "가입일", value: signupDate.isEmpty ? "-" : signupDate)
+            } else {
+                Text("로그인 후 고객정보를 확인할 수 있습니다.")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.black.opacity(0.64))
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: 340, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: .black.opacity(0.16), radius: 18, y: 10)
+    }
+}
+
+private struct InfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.black.opacity(0.52))
+
+            Text(value)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.black)
         }
     }
 }

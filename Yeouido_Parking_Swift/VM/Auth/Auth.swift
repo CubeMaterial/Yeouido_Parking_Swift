@@ -40,6 +40,7 @@ enum AuthAPI {
         let userID: Int
         let userEmail: String
         let userName: String?
+        let userPhone: String?
         let userDate: String?
 
         enum CodingKeys: String, CodingKey {
@@ -47,6 +48,7 @@ enum AuthAPI {
             case userID = "user_id"
             case userEmail = "user_email"
             case userName = "user_name"
+            case userPhone = "user_phone"
             case userDate = "user_date"
         }
     }
