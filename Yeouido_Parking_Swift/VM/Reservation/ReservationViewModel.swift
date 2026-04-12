@@ -13,11 +13,11 @@ final class ReservationViewModel: ObservableObject {
     @Published var reservations: [Reservation] = []
     @Published var reservationDetail: ReservationDetail?
     @Published var createdReservation: Reservation?
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    
     @Published var dailyReservations: [DailyReservation] = []
     @Published var reservedHours: Set<Int> = []
+    
+    @Published var isLoading = false
+    @Published var errorMessage: String?
     
     func fetchReservations(userId: Int) async {
         isLoading = true
@@ -48,10 +48,6 @@ final class ReservationViewModel: ObservableObject {
         
         do {
             dailyReservations = try await APIService.shared.fetchDailyReservations(facilityId: facilityId, date: date)
-            print("dailyReservations count =", dailyReservations.count)
-            for item in dailyReservations {
-                print("예약:", item.startDate, "~", item.endDate)
-            }
             reservedHours = makeReservedHours(from: dailyReservations, targetDate: date)
         } catch let error as APIError {
             errorMessage = error.message
@@ -103,7 +99,6 @@ final class ReservationViewModel: ObservableObject {
         dayFormatter.locale = Locale(identifier: "en_US_POSIX")
         
         guard let selectedDay = dayFormatter.date(from: targetDate) else {
-            print("선택 날짜 파싱 실패:", targetDate)
             return result
         }
         
@@ -115,19 +110,16 @@ final class ReservationViewModel: ObservableObject {
         for reservation in reservations {
             guard let start = parseServerDate(reservation.startDate),
                   let end = parseServerDate(reservation.endDate) else {
-                print("예약 날짜 파싱 실패:", reservation.startDate, reservation.endDate)
                 continue
             }
             
             let effectiveStart = max(start, dayStart)
             let effectiveEnd = min(end, dayEnd)
-            
             if effectiveStart >= effectiveEnd { continue }
             
             let startHour = calendar.component(.hour, from: effectiveStart)
             var endHour = calendar.component(.hour, from: effectiveEnd)
             
-            // 종료가 10:00 정확히면 10시는 포함 안 함
             let minute = calendar.component(.minute, from: effectiveEnd)
             let second = calendar.component(.second, from: effectiveEnd)
             if minute > 0 || second > 0 {
@@ -139,23 +131,17 @@ final class ReservationViewModel: ObservableObject {
             }
         }
         
-        print("reservedHours =", result.sorted())
         return result
     }
-
+    
     private func parseServerDate(_ text: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        if let date = formatter.date(from: text) {
-            return date
-        }
+        if let date = formatter.date(from: text) { return date }
         
         let formatter2 = ISO8601DateFormatter()
         formatter2.formatOptions = [.withInternetDateTime]
-        if let date = formatter2.date(from: text) {
-            return date
-        }
+        if let date = formatter2.date(from: text) { return date }
         
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
