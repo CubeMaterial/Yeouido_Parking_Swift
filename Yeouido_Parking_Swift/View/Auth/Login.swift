@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LoginView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var globalState: GlobalState
 
     @State private var email = ""
@@ -8,8 +9,7 @@ struct LoginView: View {
     @State private var notice = ""
     @State private var showSignupPrompt = false
     @State private var showSignupPage = false
-    @State private var pendingSignupEmail = ""
-    @State private var pendingSignupPassword = ""
+    @State private var signupViewVersion = 0
     @State private var isSubmitting = false
 
     var body: some View {
@@ -101,9 +101,7 @@ struct LoginView: View {
 
                                 HStack(spacing: 0) {
                                     Button("회원가입") {
-                                        pendingSignupEmail = normalizedEmail(email)
-                                        pendingSignupPassword = password
-                                        showSignupPage = true
+                                        openSignup()
                                     }
                                     .buttonStyle(.plain)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,12 +138,24 @@ struct LoginView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showSignupPrompt)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "chevron.left")
+                            Text("뒤로")
+                        }
+                    }
+                    .foregroundStyle(Color(red: 0.19, green: 0.28, blue: 0.39))
+                }
+            }
             .navigationDestination(isPresented: $showSignupPage) {
-                SignupView(
-                    prefilledEmail: pendingSignupEmail,
-                    prefilledPassword: pendingSignupPassword
-                )
-                .environmentObject(globalState)
+                SignupView()
+                    .id(signupViewVersion)
+                    .environmentObject(globalState)
             }
         }
     }
@@ -157,8 +167,7 @@ struct LoginView: View {
 
             HStack(spacing: 12) {
                 Button("네") {
-                    showSignupPrompt = false
-                    showSignupPage = true
+                    openSignup()
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 46)
@@ -180,6 +189,15 @@ struct LoginView: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private func openSignup() {
+        showSignupPrompt = false
+        email = ""
+        password = ""
+        notice = ""
+        signupViewVersion += 1
+        showSignupPage = true
     }
 
     @MainActor
@@ -214,8 +232,6 @@ struct LoginView: View {
                 userId: response.userID
             )
         } catch AuthAPIError.notRegistered {
-            pendingSignupEmail = normalized
-            pendingSignupPassword = password
             showSignupPrompt = true
         } catch {
             notice = error.localizedDescription
