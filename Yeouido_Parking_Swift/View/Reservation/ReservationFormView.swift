@@ -24,7 +24,7 @@ struct ReservationFormView: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        ZStack{
+        ZStack {
             LinearGradient(
                 colors: [
                     Color(hex: "63C9F2"),
@@ -36,55 +36,135 @@ struct ReservationFormView: View {
             .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(facility.name)
-                            .font(.title2)
+                VStack(spacing: 18) {
+                    
+                    // 상단 시설 정보 카드
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("예약하기")
+                            .font(.largeTitle)
                             .fontWeight(.bold)
+                            .foregroundColor(.black)
+                        
+                        Text(facility.name)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.black)
                         
                         Text(facility.info ?? "시설 설명 없음")
-                            .foregroundColor(.black)
+                            .font(.subheadline)
+                            .foregroundColor(.black.opacity(0.75))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .background(Color.white.opacity(0.88))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                     
-                    DatePicker(
-                        "예약 날짜",
-                        selection: $selectedDate,
-                        in: Date()...,
-                        displayedComponents: .date
-                    )
-                    .onChange(of: selectedDate) { _, _ in
-                        selectedStartHour = nil
-                        selectedEndHour = nil
-                        Task {
-                            await loadDailyReservations()
+                    // 날짜 선택 카드
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("예약 날짜", systemImage: "calendar")
+                            .font(.headline)
+                            .foregroundColor(.black)
+                        
+                        DatePicker(
+                            "",
+                            selection: $selectedDate,
+                            in: Date()...,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .onChange(of: selectedDate) { _, _ in
+                            selectedStartHour = nil
+                            selectedEndHour = nil
+                            Task {
+                                await loadDailyReservations()
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .background(Color.white.opacity(0.88))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                     
-                    HourBlockGridView(
-                        selectedDate: selectedDate,
-                        reservedHours: vm.reservedHours,
-                        selectedStartHour: $selectedStartHour,
-                        selectedEndHour: $selectedEndHour
-                    )
-                    
-                    if let start = selectedStartHour {
-                        let end = selectedEndHour ?? start
-                        Text("선택 시간: \(String(format: "%02d:00", start)) ~ \(String(format: "%02d:00", end + 1))")
+                    // 시간 선택 카드
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("예약 시간", systemImage: "clock")
+                                .font(.headline)
+                                .foregroundColor(.black)
+                            
+                            Spacer()
+                            
+                            Text("회색은 선택 불가")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        HourBlockGridView(
+                            selectedDate: selectedDate,
+                            reservedHours: vm.reservedHours,
+                            selectedStartHour: $selectedStartHour,
+                            selectedEndHour: $selectedEndHour
+                        )
+                        
+                        if let start = selectedStartHour {
+                            let end = selectedEndHour ?? start
+                            
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color(hex: "ED9781"))
+                                
+                                Text("선택 시간")
+                                    .font(.subheadline)
+                                    .foregroundColor(.black.opacity(0.7))
+                                
+                                Spacer()
+                                
+                                Text("\(String(format: "%02d:00", start)) ~ \(String(format: "%02d:00", end + 1))")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.black)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(Color.white.opacity(0.7))
+                            .cornerRadius(14)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .background(Color.white.opacity(0.88))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                     
-                    Button("예약하기") {
+                    // 예약 버튼
+                    Button {
                         submitReservation()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Image(systemName: "checkmark.circle")
+                            Text("예약하기")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        .padding(.vertical, 16)
+                        .background(Color(hex: "ED9781"))
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(hex: "ED9781"))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    .padding(.top, 4)
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 30)
             }
-            .navigationTitle("예약하기")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .task {
                 await loadDailyReservations()
             }
@@ -139,7 +219,7 @@ struct ReservationFormView: View {
             showAlert = true
             return
         }
-
+        
         Task {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
