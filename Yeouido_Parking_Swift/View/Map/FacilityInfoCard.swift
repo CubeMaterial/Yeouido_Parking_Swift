@@ -7,12 +7,24 @@ import SwiftUI
 
 struct FacilityInfoCard: View {
     let facility: MapFacility
+    let onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("예약 시설")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.orange)
+            HStack(alignment: .top, spacing: 12) {
+                Text("예약 시설")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.orange)
+                
+                Spacer()
+                
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Color.black.opacity(0.35))
+                }
+                .buttonStyle(.plain)
+            }
 
             Text(facility.name)
                 .font(.headline.weight(.bold))
@@ -32,8 +44,9 @@ struct FacilityInfoCard: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.orange)
         }
-        .padding(18)
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 174, alignment: .topLeading)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 22,

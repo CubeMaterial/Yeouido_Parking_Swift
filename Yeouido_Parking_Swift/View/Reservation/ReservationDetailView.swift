@@ -191,6 +191,7 @@ struct ReservationDetailView: View {
             }
             .navigationTitle("예약 상세")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -228,7 +229,7 @@ struct ReservationDetailView: View {
             return "예약 취소"
         case 1:
             if let detail = vm.reservationDetail,
-               let endDate = parseServerDate(detail.endDate),
+               let endDate = ReservationDateFormatter.parseServerDate(detail.endDate),
                endDate < Date() {
                 return "이용 완료"
             }
@@ -269,7 +270,7 @@ struct ReservationDetailView: View {
     private func resolvedState(from state: Int) -> Int {
         guard state == 1,
               let detail = vm.reservationDetail,
-              let endDate = parseServerDate(detail.endDate),
+              let endDate = ReservationDateFormatter.parseServerDate(detail.endDate),
               endDate < Date() else {
             return state
         }
@@ -278,13 +279,12 @@ struct ReservationDetailView: View {
     }
 
     private func formattedDateTime(_ text: String) -> String {
-        guard let date = parseServerDate(text) else { return text }
-        return date.formatted(date: .abbreviated, time: .shortened)
+        ReservationDateFormatter.detailDateTimeText(text)
     }
 
     private func durationText(start: String, end: String) -> String {
-        guard let startDate = parseServerDate(start),
-              let endDate = parseServerDate(end) else { return "-" }
+        guard let startDate = ReservationDateFormatter.parseServerDate(start),
+              let endDate = ReservationDateFormatter.parseServerDate(end) else { return "-" }
 
         let minutes = Int(endDate.timeIntervalSince(startDate) / 60)
         let hours = minutes / 60
@@ -299,34 +299,6 @@ struct ReservationDetailView: View {
         }
 
         return "\(remainingMinutes)분"
-    }
-
-    private func parseServerDate(_ text: String) -> Date? {
-        let isoWithFractional = ISO8601DateFormatter()
-        isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = isoWithFractional.date(from: text) { return date }
-
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        if let date = iso.date(from: text) { return date }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        let formats = [
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd HH:mm:ss.SSSSSS",
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
-        ]
-
-        for format in formats {
-            formatter.dateFormat = format
-            if let date = formatter.date(from: text) {
-                return date
-            }
-        }
-
-        return nil
     }
 
     private func googleDriveFileID(from url: URL) -> String? {

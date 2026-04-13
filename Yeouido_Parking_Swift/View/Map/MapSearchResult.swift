@@ -32,7 +32,11 @@ enum MapSearchResult: Identifiable {
         case .parking:
             return "주차장"
         case .facility(let facility):
-            return facility.isReservable ? "예약 시설" : "그 외"
+            if facility.isReservable {
+                return "예약 가능 시설"
+            }
+
+            return facility.category?.rawValue ?? "기타 시설"
         }
     }
 }
