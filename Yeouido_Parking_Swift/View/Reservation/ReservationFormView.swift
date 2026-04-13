@@ -230,7 +230,12 @@ struct ReservationFormView: View {
                 endDate: endString
             )
             
-            if result != nil {
+            if let createdReservation = result {
+                globalState.scheduleReservationNotifications(
+                    reservationID: createdReservation.id,
+                    facilityName: facility.name,
+                    startDate: startDate
+                )
                 goToDetail = true
             } else {
                 alertMessage = vm.errorMessage ?? "예약에 실패했습니다."

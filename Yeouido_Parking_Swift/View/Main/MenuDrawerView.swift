@@ -12,8 +12,9 @@ struct MenuDrawerView: View {
     @Binding var isPresented: Bool
     @Binding var isDarkModeEnabled: Bool
     let onLoginTap: () -> Void
+    let onFavoriteListTap: () -> Void
+    let onReservationListTap: () -> Void
     @State private var isCustomerInfoPresented = false
-    @State private var isReservationListPresented = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -54,11 +55,21 @@ struct MenuDrawerView: View {
                             isCustomerInfoPresented = true
                         }
                         DrawerMenuButton(
+                            title: "즐겨찾기",
+                            systemName: "heart.text.square"
+                        ) {
+                            onFavoriteListTap()
+
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                isPresented = false
+                            }
+                        }
+                        DrawerMenuButton(
                             title: "예약내역",
                             systemName: "calendar.badge.clock"
                         ) {
                             if globalState.userLoginStatus {
-                                isReservationListPresented = true
+                                onReservationListTap()
                             } else {
                                 onLoginTap()
                             }
@@ -193,10 +204,6 @@ struct MenuDrawerView: View {
                         .padding(24)
                     }
                 }
-            }
-            .fullScreenCover(isPresented: $isReservationListPresented) {
-                ReservationListView()
-                    .environmentObject(globalState)
             }
         }
     }
@@ -342,7 +349,9 @@ private struct UserInfoCard: View {
     MenuDrawerView(
         isPresented: .constant(true),
         isDarkModeEnabled: .constant(false),
-        onLoginTap: {}
+        onLoginTap: {},
+        onFavoriteListTap: {},
+        onReservationListTap: {}
     )
     .environmentObject(GlobalState())
 }

@@ -11,6 +11,7 @@ struct FacilityCardView: View {
     let facility: Facility
     var isFavorite = false
     var onFavoriteTap: (() -> Void)?
+    var onReserveTap: (() -> Void)?
 
     private var imageURL: URL? {
         guard let image = facility.image else {
@@ -47,14 +48,44 @@ struct FacilityCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(facility.name)
-                    .font(.headline)
-                    .foregroundColor(.black)
+                HStack(alignment: .top, spacing: 10) {
+                    Text(facility.name)
+                        .font(.headline)
+                        .foregroundColor(.black)
+
+                    Spacer()
+
+                    if facility.possible > 0 {
+                        Text("예약 가능")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color(hex: "167A8C"))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(hex: "E5F8F4"))
+                            .clipShape(Capsule())
+                    }
+                }
 
                 Text(facility.info ?? "시설 설명 없음")
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .lineLimit(2)
+
+                if facility.possible > 0, let onReserveTap {
+                    HStack {
+                        Spacer()
+
+                        Button("예약하기") {
+                            onReserveTap()
+                        }
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 30)
+                        .background(Color(hex: "167A8C"))
+                        .clipShape(Capsule())
+                    }
+                }
             }
         }
         .padding()

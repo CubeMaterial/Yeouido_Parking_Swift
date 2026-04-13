@@ -10,7 +10,10 @@ import SwiftUI
 struct NotificationOverlayView: View {
     @Binding var isPresented: Bool
 
-    let notifications: [String]
+    let notifications: [AppNotification]
+    let onNotificationTap: (AppNotification) -> Void
+    let onClearAll: () -> Void
+    let onAppear: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -18,9 +21,21 @@ struct NotificationOverlayView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     header
 
-                    Text("알림")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(.black)
+                    HStack {
+                        Text("알림")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.black)
+
+                        Spacer()
+
+                        if !notifications.isEmpty {
+                            Button("전체삭제") {
+                                onClearAll()
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color(hex: "167A8C"))
+                        }
+                    }
 
                     if notifications.isEmpty {
                         VStack(spacing: 14) {
@@ -35,14 +50,58 @@ struct NotificationOverlayView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 36)
                     } else {
-                        ForEach(notifications, id: \.self) { notification in
-                            Text(notification)
-                                .font(.system(size: 16))
-                                .foregroundStyle(.black)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(notifications) { notification in
+                            Button {
+                                onNotificationTap(notification)
+                            } label: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(notification.isRead ? Color.black.opacity(0.06) : Color(hex: "DDF7F3"))
+                                            .frame(width: 34, height: 34)
+
+                                        Image(systemName: notification.isRead ? "bell" : "bell.badge.fill")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(notification.isRead ? .secondary : Color(hex: "167A8C"))
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(notification.isRead ? "읽은 알림" : "새 알림")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundStyle(notification.isRead ? .secondary : Color(hex: "167A8C"))
+
+                                            Spacer()
+
+                                            Text(notification.createdAt.formatted(date: .omitted, time: .shortened))
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        Text(notification.message)
+                                            .font(.system(size: 15, weight: notification.isRead ? .medium : .semibold))
+                                            .foregroundStyle(.black)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .multilineTextAlignment(.leading)
+                                    }
+                                }
                                 .padding(16)
-                                .background(Color.black.opacity(0.04))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .background(notification.isRead ? Color.black.opacity(0.04) : Color.white)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(
+                                            notification.isRead ? Color.clear : Color(hex: "C6EEE6"),
+                                            lineWidth: 1.2
+                                        )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .shadow(
+                                    color: notification.isRead ? .clear : Color(hex: "63C9F2").opacity(0.08),
+                                    radius: 10,
+                                    y: 6
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
 
@@ -67,6 +126,9 @@ struct NotificationOverlayView: View {
             )
             .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .onAppear {
+                onAppear()
+            }
         }
     }
 
@@ -91,6 +153,9 @@ struct NotificationOverlayView: View {
 #Preview {
     NotificationOverlayView(
         isPresented: .constant(true),
-        notifications: []
+        notifications: [],
+        onNotificationTap: { _ in },
+        onClearAll: {},
+        onAppear: {}
     )
 }

@@ -22,6 +22,8 @@ struct HomeView: View {
     @State private var isInquiryExpanded = false
     @State private var isLoginRequiredPresented = false
     @State private var isChatPresented = false
+    @State private var isFavoriteListPresented = false
+    @State private var isReservationListPresented = false
 
     private var favoriteFacilities: [Facility] {
         facilityViewModel.facilities.filter { globalState.favoriteFacilityIDs.contains($0.id) }
@@ -64,7 +66,7 @@ struct HomeView: View {
                                 }
                             }
 
-                            if !globalState.notifications.isEmpty {
+                            if globalState.unreadNotificationCount > 0 {
                                 Circle()
                                     .fill(Color(hex: "ED9781"))
                                     .frame(width: 10, height: 10)
@@ -201,7 +203,16 @@ struct HomeView: View {
                     if isNotificationPresented {
                         NotificationOverlayView(
                             isPresented: $isNotificationPresented,
-                            notifications: globalState.notifications
+                            notifications: globalState.notifications,
+                            onNotificationTap: { notification in
+                                globalState.removeNotification(notification.id)
+                            },
+                            onClearAll: {
+                                globalState.clearNotifications()
+                            },
+                            onAppear: {
+                                globalState.markAllNotificationsAsRead()
+                            }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .zIndex(3)
@@ -213,6 +224,12 @@ struct HomeView: View {
                             isDarkModeEnabled: $isDarkModeEnabled,
                             onLoginTap: {
                                 isLoginRequiredPresented = true
+                            },
+                            onFavoriteListTap: {
+                                isFavoriteListPresented = true
+                            },
+                            onReservationListTap: {
+                                isReservationListPresented = true
                             }
                         )
                         .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -255,6 +272,14 @@ struct HomeView: View {
             }
             .fullScreenCover(isPresented: $isChatPresented) {
                 ChatView()
+                    .environmentObject(globalState)
+            }
+            .fullScreenCover(isPresented: $isFavoriteListPresented) {
+                FavoriteListView()
+                    .environmentObject(globalState)
+            }
+            .fullScreenCover(isPresented: $isReservationListPresented) {
+                ReservationListView()
                     .environmentObject(globalState)
             }
         }

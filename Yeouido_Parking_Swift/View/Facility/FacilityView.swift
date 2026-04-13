@@ -10,6 +10,16 @@ import SwiftUI
 struct FacilityView: View {
     private enum FacilityFilter: String, CaseIterable, Identifiable {
         case all = "전체"
+        case performance = "공연"
+        case culture = "문화"
+        case park = "공원"
+        case food = "식음"
+        case convenience = "편의"
+
+        var id: String { rawValue }
+    }
+
+    private enum FacilityCondition: String, CaseIterable, Identifiable {
         case reservable = "예약 가능"
         case favorite = "즐겨찾기"
 
@@ -20,17 +30,14 @@ struct FacilityView: View {
     @StateObject private var vm = FacilityViewModel()
     @State private var searchText = ""
     @State private var selectedFilter: FacilityFilter = .all
+    @State private var selectedConditions: Set<FacilityCondition> = []
+    @State private var selectedFacilityForReservation: Facility?
+    @State private var isLoginPresented = false
 
     private var filteredFacilities: [Facility] {
-        let baseFacilities: [Facility]
-
-        switch selectedFilter {
-        case .all:
-            baseFacilities = vm.facilities
-        case .reservable:
-            baseFacilities = vm.facilities.filter { $0.possible > 0 }
-        case .favorite:
-            baseFacilities = vm.facilities.filter { globalState.favoriteFacilityIDs.contains($0.id) }
+        let baseFacilities = vm.facilities.filter { facility in
+            matchesFilter(facility, filter: selectedFilter) &&
+            matchesConditions(facility)
         }
 
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -41,6 +48,42 @@ struct FacilityView: View {
         return baseFacilities.filter { facility in
             facility.name.localizedCaseInsensitiveContains(query) ||
             (facility.info?.localizedCaseInsensitiveContains(query) ?? false)
+        }
+    }
+
+    private func matchesFilter(_ facility: Facility, filter: FacilityFilter) -> Bool {
+        switch filter {
+        case .all:
+            return true
+        case .performance:
+            return matchesKeywords(in: facility, keywords: ["공연", "콘서트", "무대", "축제", "페스티벌", "드론", "라이드"])
+        case .culture:
+            return matchesKeywords(in: facility, keywords: ["문화", "전시", "미술", "역사", "체험", "도서", "박물관", "갤러리"])
+        case .park:
+            return matchesKeywords(in: facility, keywords: ["공원", "한강", "산책", "광장", "정원", "생태"])
+        case .food:
+            return matchesKeywords(in: facility, keywords: ["식당", "카페", "푸드", "음식", "레스토랑", "베이커리", "매점"])
+        case .convenience:
+            return matchesKeywords(in: facility, keywords: ["화장실", "편의", "안내", "센터", "라운지", "휴게", "대여", "보관"])
+        }
+    }
+
+    private func matchesConditions(_ facility: Facility) -> Bool {
+        if selectedConditions.contains(.reservable), facility.possible <= 0 {
+            return false
+        }
+
+        if selectedConditions.contains(.favorite), !globalState.favoriteFacilityIDs.contains(facility.id) {
+            return false
+        }
+
+        return true
+    }
+
+    private func matchesKeywords(in facility: Facility, keywords: [String]) -> Bool {
+        let text = "\(facility.name) \(facility.info ?? "")".lowercased()
+        return keywords.contains { keyword in
+            text.contains(keyword.lowercased())
         }
     }
 
@@ -82,6 +125,13 @@ struct FacilityView: View {
                                                 isFavorite: globalState.isFavoriteFacility(facility.id),
                                                 onFavoriteTap: {
                                                     globalState.toggleFavoriteFacility(facility.id)
+                                                },
+                                                onReserveTap: {
+                                                    guard globalState.userLoginStatus else {
+                                                        isLoginPresented = true
+                                                        return
+                                                    }
+                                                    selectedFacilityForReservation = facility
                                                 }
                                             )
                                         }
@@ -90,6 +140,7 @@ struct FacilityView: View {
                                 }
                             }
                             .padding()
+                            .padding(.bottom, 120)
                         }
                     }
                 }
@@ -97,6 +148,14 @@ struct FacilityView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .task {
                     await vm.fetchFacilities()
+                }
+                .fullScreenCover(isPresented: $isLoginPresented) {
+                    LoginView()
+                        .environmentObject(globalState)
+                }
+                .navigationDestination(item: $selectedFacilityForReservation) { facility in
+                    ReservationFormView(facility: facility)
+                        .environmentObject(globalState)
                 }
             }
         }
@@ -127,6 +186,40 @@ struct FacilityView: View {
             .frame(height: 48)
             .background(Color.white.opacity(0.94))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(FacilityCondition.allCases) { condition in
+                        Button {
+                            toggleCondition(condition)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: selectedConditions.contains(condition) ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(condition.rawValue)
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundStyle(selectedConditions.contains(condition) ? Color(hex: "0F5C67") : Color(hex: "43615B"))
+                            .padding(.horizontal, 14)
+                            .frame(height: 34)
+                            .background {
+                                Group {
+                                    if selectedConditions.contains(condition) {
+                                        Color.white
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(Color(hex: "63C9F2"), lineWidth: 1.4)
+                                            )
+                                    } else {
+                                        Color.white.opacity(0.78)
+                                    }
+                                }
+                            }
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -163,6 +256,14 @@ struct FacilityView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
+    }
+
+    private func toggleCondition(_ condition: FacilityCondition) {
+        if selectedConditions.contains(condition) {
+            selectedConditions.remove(condition)
+        } else {
+            selectedConditions.insert(condition)
+        }
     }
 }
 

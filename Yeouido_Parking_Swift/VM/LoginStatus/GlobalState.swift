@@ -3,6 +3,16 @@ import CoreLocation
 import Foundation
 import SwiftUI
 import UserNotifications
+#if canImport(UIKit)
+import UIKit
+#endif
+
+struct AppNotification: Identifiable, Equatable {
+    let id: UUID
+    let message: String
+    let createdAt: Date
+    var isRead: Bool
+}
 
 final class GlobalState: ObservableObject {
     private enum StorageKey {
@@ -35,12 +45,13 @@ final class GlobalState: ObservableObject {
     @Published var routeRequestID = UUID()
     @Published var selectedMapFacilityID: Int?
     @Published var mapSelectionRequestID = UUID()
-    @Published var notifications: [String] = []
+    @Published var notifications: [AppNotification] = []
     @Published var favoriteFacilityIDs: Set<Int> = []
 
     private var chatReplyListener: ChatListenerToken?
     private var knownAdminMessageIDs: Set<String> = []
     private var hasLoadedInitialAdminMessages = false
+    private var pushTokenObserver: NSObjectProtocol?
 
     init() {
         let defaults = UserDefaults.standard
@@ -55,9 +66,11 @@ final class GlobalState: ObservableObject {
         favoriteFacilityIDs = loadFavoriteFacilityIDs(for: currentUserID)
 
         requestNotificationAuthorization()
+        observePushTokenUpdates()
 
         if userLoginStatus {
             startChatReplyListenerIfNeeded()
+            syncPushTokenIfPossible()
         }
     }
 
@@ -71,6 +84,7 @@ final class GlobalState: ObservableObject {
         persistUserSession()
         favoriteFacilityIDs = loadFavoriteFacilityIDs(for: userId)
         startChatReplyListenerIfNeeded()
+        syncPushTokenIfPossible()
     }
 
     func logout() {
@@ -83,6 +97,12 @@ final class GlobalState: ObservableObject {
         clearUserSession()
         favoriteFacilityIDs = loadFavoriteFacilityIDs(for: nil)
         stopChatReplyListener()
+    }
+
+    deinit {
+        if let pushTokenObserver {
+            NotificationCenter.default.removeObserver(pushTokenObserver)
+        }
     }
 
     func showRoute(to parkingLot: ParkingLot) {
@@ -109,6 +129,98 @@ final class GlobalState: ObservableObject {
         }
 
         saveFavoriteFacilityIDs()
+    }
+
+    func scheduleReservationNotifications(
+        reservationID: Int,
+        facilityName: String,
+        startDate: Date
+    ) {
+        removeReservationNotifications(reservationID: reservationID)
+
+        let notificationCenter = UNUserNotificationCenter.current()
+        let hourReminders: [(hoursBefore: Int, title: String)] = [
+            (3, "예약 3시간 전"),
+            (1, "예약 1시간 전")
+        ]
+
+        for reminder in hourReminders {
+            guard let triggerDate = Calendar.current.date(byAdding: .hour, value: -reminder.hoursBefore, to: startDate),
+                  triggerDate > Date() else {
+                continue
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = reminder.title
+            content.body = "\(facilityName) 예약이 \(reminder.hoursBefore)시간 뒤에 시작됩니다."
+            content.sound = .default
+
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: triggerDate
+            )
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let identifier = "reservation_\(reservationID)_\(reminder.hoursBefore)h"
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            notificationCenter.add(request)
+        }
+
+        let testReminders: [(secondsBefore: TimeInterval, title: String)] = [
+            (60, "예약 1분 전"),
+            (30, "예약 30초 전")
+        ]
+
+        for reminder in testReminders {
+            let triggerDate = startDate.addingTimeInterval(-reminder.secondsBefore)
+            guard triggerDate > Date() else { continue }
+
+            let content = UNMutableNotificationContent()
+            content.title = reminder.title
+            content.body = "\(facilityName) 예약 시작이 곧 다가옵니다."
+            content.sound = .default
+
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second],
+                from: triggerDate
+            )
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let identifier = "reservation_\(reservationID)_\(Int(reminder.secondsBefore))s"
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            notificationCenter.add(request)
+        }
+    }
+
+    func removeReservationNotifications(reservationID: Int) {
+        let identifiers = [
+            "reservation_\(reservationID)_3h",
+            "reservation_\(reservationID)_1h",
+            "reservation_\(reservationID)_60s",
+            "reservation_\(reservationID)_30s"
+        ]
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
+    var unreadNotificationCount: Int {
+        notifications.filter { !$0.isRead }.count
+    }
+
+    func removeNotification(_ notificationID: UUID) {
+        notifications.removeAll { $0.id == notificationID }
+    }
+
+    func clearNotifications() {
+        notifications.removeAll()
+    }
+
+    func markAllNotificationsAsRead() {
+        notifications = notifications.map { notification in
+            var updated = notification
+            updated.isRead = true
+            return updated
+        }
     }
 
     private func persistUserSession() {
@@ -160,6 +272,36 @@ final class GlobalState: ObservableObject {
         }
     }
 
+    private func observePushTokenUpdates() {
+        pushTokenObserver = NotificationCenter.default.addObserver(
+            forName: .pushTokenDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let token = notification.object as? String else { return }
+            self?.syncPushTokenIfPossible(token: token)
+        }
+    }
+
+    private func syncPushTokenIfPossible(token: String? = nil) {
+        guard userLoginStatus,
+              let currentUserID,
+              ChatFirestoreService.isFirebaseAvailable
+        else { return }
+
+        let resolvedToken = token
+            ?? UserDefaults.standard.string(forKey: "fcmToken")
+            ?? UserDefaults.standard.string(forKey: "apnsDeviceToken")
+
+        guard let resolvedToken, !resolvedToken.isEmpty else { return }
+
+        ChatFirestoreService.updatePushToken(
+            userID: currentUserID,
+            email: currentUserEmail,
+            token: resolvedToken
+        )
+    }
+
     private func stopChatReplyListener() {
         chatReplyListener?.cancel()
         chatReplyListener = nil
@@ -186,14 +328,29 @@ final class GlobalState: ObservableObject {
 
         for message in newMessages {
             let summary = "관리자 답변: \(message.text)"
-            notifications.insert(summary, at: 0)
+            notifications.insert(
+                AppNotification(
+                    id: UUID(),
+                    message: summary,
+                    createdAt: Date(),
+                    isRead: false
+                ),
+                at: 0
+            )
             notifications = Array(notifications.prefix(20))
             scheduleLocalNotification(for: summary)
         }
     }
 
     private func requestNotificationAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+#if canImport(UIKit)
+            guard granted else { return }
+            DispatchQueue.main.async {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+#endif
+        }
     }
 
     private func scheduleLocalNotification(for body: String) {

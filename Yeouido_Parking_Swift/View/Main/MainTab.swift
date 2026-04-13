@@ -9,7 +9,6 @@ import Foundation
 
 enum MainTab: Hashable {
     case home
-    case reservation
     case map
     case facility
 
@@ -17,8 +16,6 @@ enum MainTab: Hashable {
         switch self {
         case .home:
             return "홈"
-        case .reservation:
-            return "예약"
         case .map:
             return "지도"
         case .facility:
@@ -30,8 +27,6 @@ enum MainTab: Hashable {
         switch self {
         case .home:
             return "house.fill"
-        case .reservation:
-            return "calendar"
         case .map:
             return "map.fill"
         case .facility:

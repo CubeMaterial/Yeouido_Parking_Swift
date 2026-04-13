@@ -15,9 +15,22 @@
 		0478E5FF2F864A780041396C /* Yeouido_Parking_Swift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yeouido_Parking_Swift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2B73AC4A2F8CC3AE008FCA60 /* Exceptions for "Yeouido_Parking_Swift" folder in "Yeouido_Parking_Swift" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Yeouido-Parking-Swift-Info.plist",
+			);
+			target = 0478E5FE2F864A780041396C /* Yeouido_Parking_Swift */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0478E6012F864A780041396C /* Yeouido_Parking_Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2B73AC4A2F8CC3AE008FCA60 /* Exceptions for "Yeouido_Parking_Swift" folder in "Yeouido_Parking_Swift" target */,
+			);
 			path = Yeouido_Parking_Swift;
 			sourceTree = "<group>";
 		};
@@ -271,11 +284,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Yeouido_Parking_Swift/Yeouido_Parking_Swift.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4X3LR5VC68;
+				DEVELOPMENT_TEAM = Q4Y52C94BQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Yeouido-Parking-Swift-Info.plist";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "가장 가까운 여의도 주차장을 안내하고 지도 경로를 표시하기 위해 현재 위치가 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -304,11 +319,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Yeouido_Parking_Swift/Yeouido_Parking_Swift.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4X3LR5VC68;
+				DEVELOPMENT_TEAM = Q4Y52C94BQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Yeouido-Parking-Swift-Info.plist";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "가장 가까운 여의도 주차장을 안내하고 지도 경로를 표시하기 위해 현재 위치가 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

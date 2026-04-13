@@ -10,6 +10,8 @@ import SwiftUI
 struct FacilityDetailView: View {
     @EnvironmentObject private var globalState: GlobalState
     let facility: Facility
+    @State private var isLoginPresented = false
+    @State private var goToReservation = false
 
     private var imageURL: URL? {
         guard let image = facility.image else {
@@ -17,6 +19,10 @@ struct FacilityDetailView: View {
         }
         
         return Self.resolvedImageURL(from: image)
+    }
+
+    private var canReserve: Bool {
+        facility.possible > 0
     }
     
     var body: some View {
@@ -78,6 +84,11 @@ struct FacilityDetailView: View {
                             .font(.subheadline)
                             .foregroundColor(.black.opacity(0.75))
                             .fixedSize(horizontal: false, vertical: true)
+
+                        if canReserve {
+                            reservationButton(compact: true)
+                                .padding(.top, 4)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(20)
@@ -107,7 +118,7 @@ struct FacilityDetailView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                .padding(.bottom, 30)
+                .padding(.bottom, 120)
             }
             .safeAreaPadding(.top)
             .navigationTitle("시설 상세")
@@ -123,6 +134,75 @@ struct FacilityDetailView: View {
                     }
                 }
             }
+            .navigationDestination(isPresented: $goToReservation) {
+                ReservationFormView(facility: facility)
+                    .environmentObject(globalState)
+            }
+            .fullScreenCover(isPresented: $isLoginPresented) {
+                LoginView()
+                    .environmentObject(globalState)
+            }
+            .safeAreaInset(edge: .bottom) {
+                if canReserve {
+                    reservationButton(compact: false)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.96),
+                                    Color.white.opacity(0.82)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .ignoresSafeArea()
+                        )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func reservationButton(compact: Bool) -> some View {
+        Button {
+            guard globalState.userLoginStatus else {
+                isLoginPresented = true
+                return
+            }
+            goToReservation = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.system(size: compact ? 14 : 16, weight: .bold))
+
+                Text("이 시설 예약하기")
+                    .font(.system(size: compact ? 15 : 16, weight: .bold))
+
+                Spacer(minLength: 0)
+
+                if !compact {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .bold))
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, compact ? 16 : 18)
+            .frame(height: compact ? 44 : 52)
+            .frame(maxWidth: compact ? nil : .infinity)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(hex: "167A8C"),
+                        Color(hex: "1E9BB1")
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: compact ? 22 : 18, style: .continuous))
+            .shadow(color: Color(hex: "167A8C").opacity(0.28), radius: compact ? 8 : 14, x: 0, y: 6)
         }
     }
 }
