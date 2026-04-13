@@ -12,6 +12,7 @@ struct HomeView: View {
     @EnvironmentObject private var globalState: GlobalState
     @EnvironmentObject private var parkingLocationService: ParkingLocationService
     @AppStorage("isDarkModeEnabled") private var isDarkModeEnabled = false
+    @StateObject private var facilityViewModel = FacilityViewModel()
     @State private var isSearchPresented = false
     @State private var isNotificationPresented = false
     @State private var isMenuPresented = false
@@ -21,6 +22,10 @@ struct HomeView: View {
     @State private var isInquiryExpanded = false
     @State private var isLoginRequiredPresented = false
     @State private var isChatPresented = false
+
+    private var favoriteFacilities: [Facility] {
+        facilityViewModel.facilities.filter { globalState.favoriteFacilityIDs.contains($0.id) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,11 +55,24 @@ struct HomeView: View {
                                 isSearchPresented = true
                             }
                         }
-                        HeaderIconButton(systemName: "bell") {
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                                isSearchPresented = false
-                                isMenuPresented = false
-                                isNotificationPresented = true
+                        ZStack(alignment: .topTrailing) {
+                            HeaderIconButton(systemName: "bell") {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                    isSearchPresented = false
+                                    isMenuPresented = false
+                                    isNotificationPresented = true
+                                }
+                            }
+
+                            if !globalState.notifications.isEmpty {
+                                Circle()
+                                    .fill(Color(hex: "ED9781"))
+                                    .frame(width: 10, height: 10)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
+                                    .offset(x: 2, y: -2)
                             }
                         }
                         HeaderIconButton(systemName: "line.3.horizontal") {
@@ -89,6 +107,20 @@ struct HomeView: View {
                                     globalState.showRoute(to: parkingLot)
                                 }
                                 .padding(.horizontal, 20)
+
+                                if !favoriteFacilities.isEmpty {
+                                    FavoriteFacilitiesSectionView(
+                                        facilities: favoriteFacilities,
+                                        favoriteIDs: globalState.favoriteFacilityIDs,
+                                        onFavoriteTap: { facility in
+                                            globalState.toggleFavoriteFacility(facility.id)
+                                        },
+                                        onFacilityTap: { facility in
+                                            globalState.showFacilityOnMap(facilityID: facility.id)
+                                        }
+                                    )
+                                    .padding(.horizontal, 20)
+                                }
 
                                 FestivalSectionView(festivals: festivals)
 
@@ -154,7 +186,13 @@ struct HomeView: View {
                     if isSearchPresented {
                         SearchOverlayView(
                             isPresented: $isSearchPresented,
-                            recentKeywords: ["어트랙션", "페스티벌"]
+                            recentKeywords: ["여의도1주차장", "축제", "공연장"],
+                            onParkingLotSelect: { parkingLot in
+                                globalState.showRoute(to: parkingLot)
+                            },
+                            onFacilitySelect: { facility in
+                                globalState.showFacilityOnMap(facilityID: facility.id)
+                            }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .zIndex(3)
@@ -163,7 +201,7 @@ struct HomeView: View {
                     if isNotificationPresented {
                         NotificationOverlayView(
                             isPresented: $isNotificationPresented,
-                            notifications: []
+                            notifications: globalState.notifications
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .zIndex(3)
@@ -194,7 +232,7 @@ struct HomeView: View {
                             onCallTap: openPhoneInquiry,
                             onChatTap: openChatInquiry
                         )
-                        .offset(x: isMenuPresented ? -292 : 0, y: isMenuPresented ? 18 : 0)
+                        .offset(x: isMenuPresented ? -292 : 0, y: isMenuPresented ? -10 : 0)
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 104)
@@ -251,6 +289,7 @@ struct HomeView: View {
         await loadWeather()
         await loadParkingAvailability()
         await loadFestivals()
+        await facilityViewModel.fetchFacilities()
     }
 
     private func openPhoneInquiry() {
@@ -269,6 +308,102 @@ struct HomeView: View {
         }
 
         isChatPresented = true
+    }
+}
+
+private struct FavoriteFacilitiesSectionView: View {
+    let facilities: [Facility]
+    let favoriteIDs: Set<Int>
+    let onFavoriteTap: (Facility) -> Void
+    let onFacilityTap: (Facility) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("즐겨찾는 시설")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Color(hex: "1F3F38"))
+
+                Spacer()
+
+                Text("\(facilities.count)곳")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color(hex: "167A8C"))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(facilities) { facility in
+                        Button {
+                            onFacilityTap(facility)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(facility.name)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundStyle(Color(hex: "1F3F38"))
+                                            .lineLimit(1)
+
+                                        Text(facility.info ?? "시설 설명이 없습니다.")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Color.black.opacity(0.55))
+                                            .lineLimit(2)
+                                    }
+
+                                    Spacer(minLength: 10)
+
+                                    Button {
+                                        onFavoriteTap(facility)
+                                    } label: {
+                                        Image(systemName: favoriteIDs.contains(facility.id) ? "heart.fill" : "heart")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(Color(hex: "ED9781"))
+                                            .frame(width: 30, height: 30)
+                                            .background(Color.white.opacity(0.95))
+                                            .clipShape(Circle())
+                                    }
+                                }
+
+                                HStack {
+                                    Label("지도에서 보기", systemImage: "map")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Color(hex: "167A8C"))
+
+                                    Spacer()
+
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(Color(hex: "167A8C"))
+                                }
+                            }
+                            .padding(16)
+                            .frame(width: 240, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white,
+                                                Color(hex: "F3FFFC")
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(Color(hex: "D8F3EC"), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.05), radius: 10, y: 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
     }
 }
 

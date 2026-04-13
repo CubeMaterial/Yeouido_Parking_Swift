@@ -9,6 +9,7 @@ import MapKit
 import SwiftUI
 
 struct MapView: View {
+    @EnvironmentObject private var globalState: GlobalState
     private let floatingTabBarSpacing: CGFloat = 88
 
     @State private var searchText = ""
@@ -107,6 +108,10 @@ struct MapView: View {
             }
             .task {
                 await loadFacilitiesIfNeeded()
+                applyExternalSelectionIfNeeded()
+            }
+            .onChange(of: globalState.mapSelectionRequestID) {
+                applyExternalSelectionIfNeeded()
             }
         }
     }
@@ -316,6 +321,14 @@ struct MapView: View {
             await MainActor.run {
                 facilityLoadMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func applyExternalSelectionIfNeeded() {
+        guard let selectedMapFacilityID = globalState.selectedMapFacilityID else { return }
+
+        if let facility = facilities.first(where: { $0.id == selectedMapFacilityID }) {
+            select(facility)
         }
     }
 

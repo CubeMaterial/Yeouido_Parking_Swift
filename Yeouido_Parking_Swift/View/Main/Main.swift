@@ -32,13 +32,7 @@ struct MainView: View {
             )
             .padding(.horizontal, 18)
             .padding(.top, 6)
-            .padding(.bottom, 4)
-            .background(alignment: .bottom) {
-                Color.white
-                    .frame(height: 20)
-                    .offset(y: 12)
-                    .ignoresSafeArea(edges: .bottom)
-            }
+            .padding(.bottom, 12)
         }
         .fullScreenCover(isPresented: $isLoginPresented) {
             LoginView()
@@ -88,12 +82,12 @@ private struct MainFloatingTabBar: View {
                                                 endPoint: .bottomTrailing
                                         )
                                     )
-                                    .frame(width: 46, height: 30)
-                                    .shadow(color: Color(hex: "63C9F2").opacity(0.2), radius: 10, y: 5)
+                                    .frame(width: 44, height: 28)
+                                    .shadow(color: Color(hex: "63C9F2").opacity(0.18), radius: 8, y: 4)
                             }
 
                             Image(systemName: tab.symbolName)
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(selectedTab == tab ? .white : Color(hex: "1F3F38"))
                         }
 
@@ -102,18 +96,18 @@ private struct MainFloatingTabBar: View {
                             .foregroundStyle(selectedTab == tab ? Color(hex: "167A8C") : Color.black.opacity(0.72))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 3)
                     .contentShape(Rectangle())
                     .overlay(alignment: .top) {
                         if !isLoggedIn && tab == .reservation {
-                            Text("로그인이 필요합니다")
+                            Text("로그인 필요")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(Color(hex: "167A8C"))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(Color.white.opacity(0.98))
                                 .clipShape(Capsule())
-                                .offset(y: -18)
+                                .offset(y: -24)
                         }
                     }
                 }
@@ -121,13 +115,13 @@ private struct MainFloatingTabBar: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(.white.opacity(0.92))
 
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(
                         LinearGradient(
                             colors: [
