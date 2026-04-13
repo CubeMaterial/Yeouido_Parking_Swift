@@ -8,9 +8,10 @@
 import SwiftUI
 
 struct FacilityCardView: View {
-    
     let facility: Facility
-    
+    var isFavorite = false
+    var onFavoriteTap: (() -> Void)?
+
     private var imageURL: URL? {
         guard let image = facility.image else {
             return nil
@@ -20,25 +21,36 @@ struct FacilityCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            
-            // 이미지
-            AsyncImage(url: imageURL) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                Color.gray.opacity(0.2)
+            ZStack(alignment: .topTrailing) {
+                AsyncImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(height: 160)
+                .clipped()
+                .cornerRadius(12)
+
+                if let onFavoriteTap {
+                    Button(action: onFavoriteTap) {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(isFavorite ? Color(hex: "ED9781") : Color(hex: "1F3F38"))
+                            .frame(width: 34, height: 34)
+                            .background(Color.white.opacity(0.94))
+                            .clipShape(Circle())
+                    }
+                    .padding(10)
+                }
             }
-            .frame(height: 160)
-            .clipped()
-            .cornerRadius(12)
-            
-            // 텍스트 영역
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(facility.name)
                     .font(.headline)
                     .foregroundColor(.black)
-                
+
                 Text(facility.info ?? "시설 설명 없음")
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -91,4 +103,3 @@ private extension FacilityCardView {
         return nil
     }
 }
-

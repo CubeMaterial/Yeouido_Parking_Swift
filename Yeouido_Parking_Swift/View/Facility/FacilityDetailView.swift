@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct FacilityDetailView: View {
-    
+    @EnvironmentObject private var globalState: GlobalState
     let facility: Facility
-    
+
     private var imageURL: URL? {
         guard let image = facility.image else {
             return nil
@@ -112,6 +112,17 @@ struct FacilityDetailView: View {
             .safeAreaPadding(.top)
             .navigationTitle("시설 상세")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        globalState.toggleFavoriteFacility(facility.id)
+                    } label: {
+                        Image(systemName: globalState.isFavoriteFacility(facility.id) ? "heart.fill" : "heart")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(globalState.isFavoriteFacility(facility.id) ? Color(hex: "ED9781") : .white)
+                    }
+                }
+            }
         }
     }
 }
@@ -155,4 +166,3 @@ private extension FacilityDetailView {
         return nil
     }
 }
-

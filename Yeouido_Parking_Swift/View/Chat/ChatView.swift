@@ -11,6 +11,21 @@ struct ChatView: View {
     @State private var listenerToken: ChatListenerToken?
     @State private var sendTimeoutWorkItem: DispatchWorkItem?
 
+    private var groupedMessages: [ChatMessageSection] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: messages) { message in
+            calendar.startOfDay(for: message.createdAt)
+        }
+
+        return grouped.keys.sorted().map { date in
+            ChatMessageSection(
+                date: date,
+                title: dateSectionTitle(for: date),
+                messages: grouped[date]?.sorted { $0.createdAt < $1.createdAt } ?? []
+            )
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -63,25 +78,29 @@ struct ChatView: View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 12) {
-                    ForEach(messages) { message in
-                        HStack {
-                            if message.senderType == .admin {
-                                ChatBubble(
-                                    text: message.text,
-                                    isCurrentUser: false,
-                                    createdAt: message.createdAt
-                                )
-                                Spacer(minLength: 48)
-                            } else {
-                                Spacer(minLength: 48)
-                                ChatBubble(
-                                    text: message.text,
-                                    isCurrentUser: true,
-                                    createdAt: message.createdAt
-                                )
+                    ForEach(groupedMessages) { section in
+                        ChatDateDivider(title: section.title)
+
+                        ForEach(section.messages) { message in
+                            HStack {
+                                if message.senderType == .admin {
+                                    ChatBubble(
+                                        text: message.text,
+                                        isCurrentUser: false,
+                                        createdAt: message.createdAt
+                                    )
+                                    Spacer(minLength: 48)
+                                } else {
+                                    Spacer(minLength: 48)
+                                    ChatBubble(
+                                        text: message.text,
+                                        isCurrentUser: true,
+                                        createdAt: message.createdAt
+                                    )
+                                }
                             }
+                            .id(message.id)
                         }
-                        .id(message.id)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -203,6 +222,60 @@ struct ChatView: View {
                 }
             }
         }
+    }
+
+    private func dateSectionTitle(for date: Date) -> String {
+        let calendar = Calendar.current
+
+        if calendar.isDateInToday(date) {
+            return "오늘"
+        }
+
+        if calendar.isDateInYesterday(date) {
+            return "어제"
+        }
+
+        return date.formatted(
+            .dateTime
+                .year()
+                .month(.wide)
+                .day()
+                .weekday(.abbreviated)
+        )
+    }
+}
+
+private struct ChatMessageSection: Identifiable {
+    let date: Date
+    let title: String
+    let messages: [ChatMessage]
+
+    var id: Date { date }
+}
+
+private struct ChatDateDivider: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.18))
+                .frame(height: 1)
+
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.96))
+                .clipShape(Capsule())
+
+            Rectangle()
+                .fill(Color.secondary.opacity(0.18))
+                .frame(height: 1)
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 2)
     }
 }
 
