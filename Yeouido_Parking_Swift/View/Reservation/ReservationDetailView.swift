@@ -8,11 +8,43 @@
 import SwiftUI
 
 struct ReservationDetailView: View {
-    
+    @EnvironmentObject private var globalState: GlobalState
+    @Environment(\.dismiss) private var dismiss
+
     let reservationId: Int
     @StateObject private var vm = ReservationViewModel()
-    @State private var goToMain = false
-    
+    @StateObject private var facilityViewModel = FacilityViewModel()
+
+    private var matchedFacility: Facility? {
+        guard let detail = vm.reservationDetail else { return nil }
+        return facilityViewModel.facilities.first { $0.id == detail.facilityId }
+    }
+
+    private var imageURL: URL? {
+        guard let image = matchedFacility?.image ?? vm.reservationDetail?.facilityImage else {
+            return nil
+        }
+
+        guard let originalURL = URL(string: image) else {
+            return nil
+        }
+
+        if originalURL.host?.contains("drive.google.com") == true,
+           let fileID = googleDriveFileID(from: originalURL) {
+            var components = URLComponents()
+            components.scheme = "https"
+            components.host = "drive.google.com"
+            components.path = "/uc"
+            components.queryItems = [
+                URLQueryItem(name: "export", value: "view"),
+                URLQueryItem(name: "id", value: fileID)
+            ]
+            return components.url
+        }
+
+        return originalURL
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -27,7 +59,6 @@ struct ReservationDetailView: View {
             
             ScrollView {
                 VStack(spacing: 18) {
-                    
                     if vm.isLoading {
                         VStack {
                             Spacer().frame(height: 120)
@@ -35,42 +66,60 @@ struct ReservationDetailView: View {
                             Spacer()
                         }
                     } else if let detail = vm.reservationDetail {
-                        
-                        // 상단 타이틀 카드
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("시설 이용 내역 상세")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                            
-                            Text(stateText(detail.state))
-                                .font(.subheadline)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(statusBackgroundColor(detail.state))
-                                .foregroundColor(statusTextColor(detail.state))
-                                .cornerRadius(20)
+                        if let imageURL {
+                            AsyncImage(url: imageURL) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(height: 220)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.white.opacity(0.35))
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(height: 220)
+                                        .frame(maxWidth: .infinity)
+                                        .clipped()
+                                case .failure:
+                                    reservationHeroPlaceholder
+                                @unknown default:
+                                    reservationHeroPlaceholder
+                                }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .shadow(color: .black.opacity(0.12), radius: 12, y: 8)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(20)
-                        .background(Color.white.opacity(0.88))
-                        .cornerRadius(20)
-                        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
-                        
-                        // 시설 정보 카드
+
                         VStack(alignment: .leading, spacing: 14) {
-                            Text(detail.facilityName)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            
-                            Text("시설 정보")
-                                .font(.headline)
-                                .foregroundColor(.black)
-                            
-                            Text(detail.facilityInfo ?? "시설 설명 없음")
-                                .font(.subheadline)
-                                .foregroundColor(.black.opacity(0.75))
-                                .fixedSize(horizontal: false, vertical: true)
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(detail.facilityName)
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundColor(.black)
+
+                                    Text("예약번호 \(detail.id)")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Text(stateText(detail.state))
+                                    .font(.subheadline)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(statusBackgroundColor(detail.state))
+                                    .foregroundColor(statusTextColor(detail.state))
+                                    .cornerRadius(20)
+                            }
+
+                            if let facilityInfo = detail.facilityInfo, !facilityInfo.isEmpty {
+                                Text(facilityInfo)
+                                    .font(.subheadline)
+                                    .foregroundColor(.black.opacity(0.72))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(20)
@@ -78,16 +127,15 @@ struct ReservationDetailView: View {
                         .cornerRadius(20)
                         .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                         
-                        // 예약 정보 카드
                         VStack(alignment: .leading, spacing: 14) {
                             Label("예약 정보", systemImage: "doc.text.fill")
                                 .font(.headline)
                                 .foregroundColor(.black)
-                            
-                            detailRow(title: "예약번호", value: "\(detail.id)")
-                            detailRow(title: "시작", value: detail.startDate)
-                            detailRow(title: "종료", value: detail.endDate)
-                            detailRow(title: "예약일", value: detail.reservationDate)
+
+                            detailRow(title: "예약 시작", value: formattedDateTime(detail.startDate))
+                            detailRow(title: "예약 종료", value: formattedDateTime(detail.endDate))
+                            detailRow(title: "이용 시간", value: durationText(start: detail.startDate, end: detail.endDate))
+                            detailRow(title: "예약 생성", value: formattedDateTime(detail.reservationDate))
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(20)
@@ -95,25 +143,39 @@ struct ReservationDetailView: View {
                         .cornerRadius(20)
                         .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                         
-                        // 메인화면 버튼
-                        Button {
-                            goToMain = true
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Image(systemName: "house.fill")
-                                Text("메인화면으로")
-                                    .fontWeight(.semibold)
-                                Spacer()
+                        if let matchedFacility {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Label("시설 위치", systemImage: "location.fill")
+                                    .font(.headline)
+                                    .foregroundColor(.black)
+
+                                MiniMapView(lat: matchedFacility.lat, long: matchedFacility.long)
+                                    .frame(height: 180)
+                                    .cornerRadius(18)
+
+                                Button {
+                                    globalState.showFacilityOnMap(facilityID: matchedFacility.id)
+                                    dismiss()
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "map.fill")
+                                        Text("맵에서 경로 확인")
+                                            .fontWeight(.semibold)
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 16)
+                                    .background(Color(hex: "167A8C"))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                                }
                             }
-                            .padding(.vertical, 16)
-                            .background(Color(hex: "ED9781"))
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
-                            .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(20)
+                            .background(Color.white.opacity(0.88))
+                            .cornerRadius(20)
+                            .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
                         }
-                        .padding(.top, 4)
-                        .padding(.bottom, 50)
                     } else {
                         VStack {
                             Spacer().frame(height: 120)
@@ -129,15 +191,24 @@ struct ReservationDetailView: View {
             }
             .navigationTitle("예약 상세")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
             .task {
                 await vm.fetchReservationDetail(reservationId: reservationId)
-            }
-            .navigationDestination(isPresented: $goToMain) {
-                MainView()
+                await facilityViewModel.fetchFacilities()
             }
         }
     }
-    
+
     @ViewBuilder
     private func detailRow(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -150,34 +221,140 @@ struct ReservationDetailView: View {
                 .foregroundColor(.black)
         }
     }
-    
+
     private func stateText(_ state: Int) -> String {
         switch state {
-        case 0: return "취소"
-        case 1: return "완료"
-        default: return "알 수 없음"
+        case 0:
+            return "예약 취소"
+        case 1:
+            if let detail = vm.reservationDetail,
+               let endDate = parseServerDate(detail.endDate),
+               endDate < Date() {
+                return "이용 완료"
+            }
+            return "예약 중"
+        case 2:
+            return "이용 완료"
+        default:
+            return "알 수 없음"
         }
     }
-    
+
     private func statusBackgroundColor(_ state: Int) -> Color {
-        switch state {
+        switch resolvedState(from: state) {
         case 0:
             return Color.red.opacity(0.15)
         case 1:
             return Color.blue.opacity(0.15)
+        case 2:
+            return Color.gray.opacity(0.15)
         default:
             return Color.gray.opacity(0.15)
         }
     }
-    
+
     private func statusTextColor(_ state: Int) -> Color {
-        switch state {
+        switch resolvedState(from: state) {
         case 0:
             return .red
         case 1:
             return .blue
+        case 2:
+            return .gray
         default:
             return .gray
         }
+    }
+
+    private func resolvedState(from state: Int) -> Int {
+        guard state == 1,
+              let detail = vm.reservationDetail,
+              let endDate = parseServerDate(detail.endDate),
+              endDate < Date() else {
+            return state
+        }
+
+        return 2
+    }
+
+    private func formattedDateTime(_ text: String) -> String {
+        guard let date = parseServerDate(text) else { return text }
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private func durationText(start: String, end: String) -> String {
+        guard let startDate = parseServerDate(start),
+              let endDate = parseServerDate(end) else { return "-" }
+
+        let minutes = Int(endDate.timeIntervalSince(startDate) / 60)
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+
+        if hours > 0 && remainingMinutes > 0 {
+            return "\(hours)시간 \(remainingMinutes)분"
+        }
+
+        if hours > 0 {
+            return "\(hours)시간"
+        }
+
+        return "\(remainingMinutes)분"
+    }
+
+    private func parseServerDate(_ text: String) -> Date? {
+        let isoWithFractional = ISO8601DateFormatter()
+        isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoWithFractional.date(from: text) { return date }
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        if let date = iso.date(from: text) { return date }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let formats = [
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        ]
+
+        for format in formats {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: text) {
+                return date
+            }
+        }
+
+        return nil
+    }
+
+    private func googleDriveFileID(from url: URL) -> String? {
+        let pathComponents = url.pathComponents
+
+        if let fileIndex = pathComponents.firstIndex(of: "d"),
+           pathComponents.indices.contains(fileIndex + 1) {
+            return pathComponents[fileIndex + 1]
+        }
+
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let id = components.queryItems?.first(where: { $0.name == "id" })?.value,
+           id.isEmpty == false {
+            return id
+        }
+
+        return nil
+    }
+
+    private var reservationHeroPlaceholder: some View {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.32),
+                Color.white.opacity(0.12)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .frame(height: 220)
     }
 }

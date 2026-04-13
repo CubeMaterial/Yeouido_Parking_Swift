@@ -147,6 +147,35 @@ enum ChatFirestoreService {
         #endif
     }
 
+    static func updatePushToken(
+        userID: Int,
+        email: String,
+        token: String,
+        completion: @escaping (Result<Void, Error>) -> Void = { _ in }
+    ) {
+        #if canImport(FirebaseFirestore)
+        let now = Date()
+        Firestore.firestore()
+            .collection("user_push_tokens")
+            .document(String(userID))
+            .setData([
+                "userID": userID,
+                "userEmail": email,
+                "fcmToken": token,
+                "platform": "ios",
+                "updatedAt": Timestamp(date: now)
+            ], merge: true) { error in
+                if let error = mapFirestoreError(error) {
+                    completion(.failure(error))
+                } else {
+                    completion(.success(()))
+                }
+            }
+        #else
+        completion(.failure(ChatServiceError.firebaseUnavailable))
+        #endif
+    }
+
     #if canImport(FirebaseFirestore)
     private static func mapMessage(id: String, data: [String: Any]) -> ChatMessage? {
         guard

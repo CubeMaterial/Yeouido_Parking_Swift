@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct ReservationListView: View {
-    
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var globalState: GlobalState
     @StateObject private var vm = ReservationViewModel()
-    
+    @StateObject private var facilityViewModel = FacilityViewModel()
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -41,13 +42,16 @@ struct ReservationListView: View {
                         ScrollView {
                             LazyVStack(spacing: 16) {
                                 ForEach(vm.reservations) { reservation in
-                                    
-                                    ReservationCardView(
-                                        reservation: reservation,
-                                        onCancel: { id in
-                                            cancelReservation(id)
-                                        }
-                                    )
+                                    NavigationLink {
+                                        ReservationDetailView(reservationId: reservation.id)
+                                            .environmentObject(globalState)
+                                    } label: {
+                                        ReservationCardView(
+                                            reservation: reservation,
+                                            facility: facility(for: reservation)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .frame(maxWidth: .infinity) // 🔥 핵심
@@ -61,18 +65,26 @@ struct ReservationListView: View {
             }
             .navigationTitle("예약 내역")
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
         }
         .task {
             guard let userID = globalState.currentUserID else { return }
             await vm.fetchReservations(userId: userID)
+            await facilityViewModel.fetchFacilities()
         }
     }
-    
-    private func cancelReservation(_ reservationId: Int) {
-        Task {
-            await vm.cancelReservation(reservationId: reservationId)
-            guard let userID = globalState.currentUserID else { return }
-            await vm.fetchReservations(userId: userID)
-        }
+
+    private func facility(for reservation: Reservation) -> Facility? {
+        facilityViewModel.facilities.first { $0.id == reservation.facilityId }
     }
 }
