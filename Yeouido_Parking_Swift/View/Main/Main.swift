@@ -104,6 +104,18 @@ private struct MainFloatingTabBar: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 5)
                     .contentShape(Rectangle())
+                    .overlay(alignment: .top) {
+                        if !isLoggedIn && tab == .reservation {
+                            Text("로그인이 필요합니다")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Color(hex: "167A8C"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.98))
+                                .clipShape(Capsule())
+                                .offset(y: -18)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -130,18 +142,6 @@ private struct MainFloatingTabBar: View {
             }
         )
         .shadow(color: Color.black.opacity(0.06), radius: 16, y: 6)
-        .overlay(alignment: .topTrailing) {
-            if !isLoggedIn {
-                Text("예약 로그인 필요")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color(hex: "167A8C"))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.95))
-                    .clipShape(Capsule())
-                    .offset(x: -8, y: -10)
-            }
-        }
     }
 }
 

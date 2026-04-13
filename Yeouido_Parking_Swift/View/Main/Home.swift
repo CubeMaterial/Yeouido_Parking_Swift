@@ -103,7 +103,7 @@ struct HomeView: View {
                                     availability: parkingAvailability
                                 )
                                 .padding(.horizontal, 20)
-                                .padding(.bottom, 24)
+                                .padding(.bottom, 150)
                             }
                         }
                         .refreshable {
@@ -194,7 +194,7 @@ struct HomeView: View {
                         .offset(x: isMenuPresented ? -292 : 0, y: isMenuPresented ? 18 : 0)
                     }
                     .padding(.trailing, 20)
-                    .padding(.bottom, 118)
+                    .padding(.bottom, 104)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .zIndex(4)
