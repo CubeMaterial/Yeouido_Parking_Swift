@@ -10,6 +10,7 @@ import SwiftUI
 struct ParkingAvailabilityGridSectionView: View {
     let parkingLots: [ParkingLot]
     let availability: [String: Int]
+    let onParkingLotTap: (ParkingLot) -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -31,33 +32,58 @@ struct ParkingAvailabilityGridSectionView: View {
     }
 
     private func parkingLotCard(for parkingLot: ParkingLot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(parkingLot.name)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(.black)
+        Button {
+            onParkingLotTap(parkingLot)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    Text(parkingLot.name)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.black)
 
-            Text("잔여 대수")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.48))
+                    Spacer(minLength: 8)
 
-            Text(countText(for: parkingLot))
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(Color(hex: "1C6DD0"))
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color(hex: "1C6DD0"))
+                        .padding(8)
+                        .background(Color(hex: "EAF4FF"))
+                        .clipShape(Circle())
+                }
 
-            Text(parkingLot.address)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.black.opacity(0.52))
-                .lineLimit(2)
+                Text("잔여 대수")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.48))
+
+                Text(countText(for: parkingLot))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color(hex: "1C6DD0"))
+
+                Text(parkingLot.address)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.black.opacity(0.52))
+                    .lineLimit(2)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "location.viewfinder")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("경로 보기")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundStyle(Color(hex: "167A8C"))
+                .padding(.top, 2)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+            .background(Color.white)
+            .overlay {
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-        .background(Color.white)
-        .overlay {
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .buttonStyle(.plain)
     }
 
     private func countText(for parkingLot: ParkingLot) -> String {
@@ -78,7 +104,8 @@ struct ParkingAvailabilityGridSectionView: View {
             "여의도3주차장": 7,
             "여의도4주차장": 142,
             "여의도5주차장": 156
-        ]
+        ],
+        onParkingLotTap: { _ in }
     )
     .padding(20)
 }

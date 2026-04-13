@@ -100,7 +100,10 @@ struct HomeView: View {
 
                                 ParkingAvailabilityGridSectionView(
                                     parkingLots: ParkingLot.yeouidoLots,
-                                    availability: parkingAvailability
+                                    availability: parkingAvailability,
+                                    onParkingLotTap: { parkingLot in
+                                        globalState.showRoute(to: parkingLot)
+                                    }
                                 )
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 150)
