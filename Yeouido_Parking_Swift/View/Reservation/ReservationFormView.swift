@@ -158,6 +158,7 @@ struct ReservationFormView: View {
                         .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
                     }
                     .padding(.top, 4)
+                    .padding(.bottom, 50)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
