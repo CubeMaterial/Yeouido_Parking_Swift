@@ -24,6 +24,18 @@ struct HomeView: View {
     @State private var isChatPresented = false
     @State private var isFavoriteListPresented = false
     @State private var isReservationListPresented = false
+    @State private var predictedAvailabilityByLot: [String: Int] = [:]
+    @State private var selectedPredictionOffsetHours = 1
+    @State private var predictionErrorMessage: String?
+
+    private let predictionEngine = WeightPredictionEngine.makeDefault()
+    private let parkingCapacityByName: [String: Int] = [
+        "여의도1주차장": 230,
+        "여의도2주차장": 180,
+        "여의도3주차장": 140,
+        "여의도4주차장": 450,
+        "여의도5주차장": 560
+    ]
 
     private var favoriteFacilities: [Facility] {
         facilityViewModel.facilities.filter { globalState.favoriteFacilityIDs.contains($0.id) }
@@ -131,10 +143,17 @@ struct HomeView: View {
                                     hoursText: "06:00 - 23:00"
                                 )
                                 .padding(.horizontal, 20)
-
+                                
                                 ParkingAvailabilityGridSectionView(
                                     parkingLots: ParkingLot.yeouidoLots,
                                     availability: parkingAvailability,
+                                    predictedAvailability: predictedAvailabilityByLot,
+                                    selectedPredictionOffsetHours: $selectedPredictionOffsetHours,
+                                    predictionHour: HomeView.hourOffsetBucket(
+                                        from: HomeView.currentHourBucket(),
+                                        offset: selectedPredictionOffsetHours
+                                    ),
+                                    errorMessage: predictionErrorMessage,
                                     onParkingLotTap: { parkingLot in
                                         globalState.showRoute(to: parkingLot)
                                     }
@@ -261,6 +280,12 @@ struct HomeView: View {
             .task {
                 await refreshHomeData()
             }
+            .onChange(of: parkingAvailability) { _, _ in
+                refreshPrediction()
+            }
+            .onChange(of: selectedPredictionOffsetHours) { _, _ in
+                refreshPrediction()
+            }
             .fullScreenCover(isPresented: $globalState.isRoutePresented) {
                 RouteView()
                     .environmentObject(globalState)
@@ -315,6 +340,44 @@ struct HomeView: View {
         await loadParkingAvailability()
         await loadFestivals()
         await facilityViewModel.fetchFacilities()
+        refreshPrediction()
+    }
+
+    private func refreshPrediction() {
+        let anchorHour = HomeView.currentHourBucket()
+        let targetHour = HomeView.hourOffsetBucket(from: anchorHour, offset: selectedPredictionOffsetHours)
+        var output: [String: Int] = [:]
+        var hasAnyPrediction = false
+
+        for lot in ParkingLot.yeouidoLots {
+            guard let anchorCount = parkingAvailability[lot.name] else { continue }
+            let capacity = parkingCapacityByName[lot.name] ?? max(anchorCount + 100, 200)
+
+            if let predictedByHour = try? predictionEngine.predict(
+                date: Date(),
+                anchorHour: anchorHour,
+                anchorCount: anchorCount,
+                maxCapacity: capacity
+            ) {
+                output[lot.name] = predictedByHour[targetHour] ?? anchorCount
+                hasAnyPrediction = true
+            }
+        }
+
+        predictedAvailabilityByLot = output
+        predictionErrorMessage = hasAnyPrediction ? nil : "예측할 주차장 데이터가 없습니다."
+    }
+
+    private static func currentHourBucket() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let clamped = min(max(hour, 7), 22)
+        return String(format: "%02d", clamped)
+    }
+
+    private static func hourOffsetBucket(from hourText: String, offset: Int) -> String {
+        guard let hour = Int(hourText) else { return "22" }
+        let safeOffset = min(max(offset, 1), 3)
+        return String(format: "%02d", min(hour + safeOffset, 22))
     }
 
     private func openPhoneInquiry() {
