@@ -10,7 +10,7 @@ import SwiftUI
 
 struct MapView: View {
     @EnvironmentObject private var globalState: GlobalState
-    private let floatingTabBarSpacing: CGFloat = 76
+    private let floatingTabBarSpacing: CGFloat = 96
 
     @State private var searchText = ""
     @State private var isFilterSheetPresented = false
@@ -88,28 +88,34 @@ struct MapView: View {
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isFilterSheetPresented)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Group {
-                    if let selectedParkingSpot {
-                        ParkingInfoCard(
-                            parkingSpot: selectedParkingSpot,
-                            availability: availabilityBySourceName[selectedParkingSpot.sourceName],
-                            isLoading: isLoadingAvailability,
-                            errorMessage: availabilityErrorMessage,
-                            onClose: {
-                                selectedParkingSpotID = nil
-                                availabilityErrorMessage = nil
+                    if !isFilterSheetPresented {
+                        if let selectedParkingSpot {
+                            VStack(spacing: 0) {
+                                ParkingInfoCard(
+                                    parkingSpot: selectedParkingSpot,
+                                    availability: availabilityBySourceName[selectedParkingSpot.sourceName],
+                                    isLoading: isLoadingAvailability,
+                                    errorMessage: availabilityErrorMessage,
+                                    onClose: {
+                                        selectedParkingSpotID = nil
+                                        availabilityErrorMessage = nil
+                                    }
+                                )
+                                drawerBottomExtension
                             }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, floatingTabBarSpacing)
-                    } else if let selectedReservableFacility {
-                        FacilityInfoCard(
-                            facility: selectedReservableFacility,
-                            onClose: {
-                                selectedFacilityID = nil
+                            .padding(.horizontal, 16)
+                        } else if let selectedReservableFacility {
+                            VStack(spacing: 0) {
+                                FacilityInfoCard(
+                                    facility: selectedReservableFacility,
+                                    onClose: {
+                                        selectedFacilityID = nil
+                                    }
+                                )
+                                drawerBottomExtension
                             }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, floatingTabBarSpacing)
+                            .padding(.horizontal, 16)
+                        }
                     }
                 }
             }
@@ -119,6 +125,12 @@ struct MapView: View {
             }
             .onChange(of: globalState.mapSelectionRequestID) {
                 applyExternalSelectionIfNeeded()
+            }
+            .onChange(of: isFilterSheetPresented) { _, isPresented in
+                globalState.isMapFilterSheetPresented = isPresented
+            }
+            .onDisappear {
+                globalState.isMapFilterSheetPresented = false
             }
         }
     }
@@ -173,6 +185,12 @@ struct MapView: View {
         )
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+    
+    private var drawerBottomExtension: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.96))
+            .frame(height: floatingTabBarSpacing)
     }
 
     private var filteredParkingSpots: [ParkingSpot] {

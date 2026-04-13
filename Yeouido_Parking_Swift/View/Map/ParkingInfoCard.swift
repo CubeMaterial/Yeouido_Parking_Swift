@@ -55,7 +55,7 @@ struct ParkingInfoCard: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 178, alignment: .topLeading)
+        .frame(minHeight: 196, alignment: .topLeading)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 22,

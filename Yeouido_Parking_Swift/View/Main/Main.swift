@@ -23,12 +23,14 @@ struct MainView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            MainFloatingTabBar(
-                selectedTab: selectedTabBinding
-            )
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
-            .padding(.bottom, 10)
+            if !(globalState.selectedMainTab == .map && globalState.isMapFilterSheetPresented) {
+                MainFloatingTabBar(
+                    selectedTab: selectedTabBinding
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+            }
         }
     }
 
@@ -50,19 +52,19 @@ private struct MainFloatingTabBar: View {
             HStack(spacing: 12) {
                 sideTabButton(for: .home)
 
-                Spacer(minLength: 86)
+                Spacer(minLength: 78)
 
                 sideTabButton(for: .facility)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 12)
+            .padding(.horizontal, 14)
+            .padding(.top, 9)
+            .padding(.bottom, 9)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(.white.opacity(0.96))
 
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [
@@ -76,10 +78,10 @@ private struct MainFloatingTabBar: View {
                         )
                 }
             )
-            .shadow(color: Color.black.opacity(0.09), radius: 16, y: 10)
+            .shadow(color: Color.black.opacity(0.08), radius: 12, y: 8)
 
             mapTabButton
-                .offset(y: -14)
+                .offset(y: -12)
         }
     }
 
@@ -89,20 +91,20 @@ private struct MainFloatingTabBar: View {
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: tab.symbolName)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(selectedTab == tab ? Color(hex: "167A8C") : Color(hex: "1F3F38").opacity(0.72))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 34, height: 34)
                     .background(
                         Circle()
                             .fill(selectedTab == tab ? Color(hex: "DDF5EE") : Color.clear)
                     )
 
                 Text(tab.title)
-                    .font(.system(size: 12, weight: selectedTab == tab ? .bold : .semibold))
+                    .font(.system(size: 11, weight: selectedTab == tab ? .bold : .semibold))
                     .foregroundStyle(selectedTab == tab ? Color(hex: "167A8C") : Color.black.opacity(0.68))
             }
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.vertical, 2)
+            .frame(maxWidth: .infinity, minHeight: 46)
+            .padding(.vertical, 1)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(selectedTab == tab ? Color(hex: "F1FBF8") : Color.clear)
@@ -128,20 +130,20 @@ private struct MainFloatingTabBar: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 80, height: 80)
-                    .shadow(color: Color(hex: "63C9F2").opacity(0.34), radius: 14, y: 9)
+                    .frame(width: 74, height: 74)
+                    .shadow(color: Color(hex: "63C9F2").opacity(0.32), radius: 12, y: 8)
 
                 Circle()
                     .stroke(Color.white.opacity(0.88), lineWidth: 4)
-                    .frame(width: 80, height: 80)
+                    .frame(width: 74, height: 74)
 
                 VStack(spacing: 2) {
                     Image(systemName: MainTab.map.symbolName)
-                        .font(.system(size: 22, weight: .black))
+                        .font(.system(size: 20, weight: .black))
                         .foregroundStyle(.white)
 
                     Text(MainTab.map.title)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.white.opacity(0.95))
                 }
             }
