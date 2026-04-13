@@ -37,6 +37,17 @@ struct ReservationFormView: View {
             
             ScrollView {
                 VStack(spacing: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("예약하기")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(.black)
+
+                        Text("원하는 날짜와 시간을 선택해 주세요")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.black.opacity(0.65))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                     
                     // 상단 시설 정보 카드
                     VStack(alignment: .leading, spacing: 10) {
@@ -153,13 +164,13 @@ struct ReservationFormView: View {
                         .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
                     }
                     .padding(.top, 4)
-                    .padding(.bottom, 50)
+                    .padding(.bottom, 78)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 30)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 40)
             }
-            .navigationTitle("")
+            .navigationTitle("예약하기")
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 await loadDailyReservations()

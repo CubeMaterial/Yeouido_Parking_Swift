@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct NotificationOverlayView: View {
     @Binding var isPresented: Bool
@@ -55,15 +56,7 @@ struct NotificationOverlayView: View {
                                 onNotificationTap(notification)
                             } label: {
                                 HStack(alignment: .top, spacing: 12) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(notification.isRead ? Color.black.opacity(0.06) : Color(hex: "DDF7F3"))
-                                            .frame(width: 34, height: 34)
-
-                                        Image(systemName: notification.isRead ? "bell" : "bell.badge.fill")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(notification.isRead ? .secondary : Color(hex: "167A8C"))
-                                    }
+                                    appIconBadge(isRead: notification.isRead)
 
                                     VStack(alignment: .leading, spacing: 6) {
                                         HStack {
@@ -147,6 +140,46 @@ struct NotificationOverlayView: View {
             }
         }
         .frame(height: 44)
+    }
+}
+
+private extension NotificationOverlayView {
+    @ViewBuilder
+    func appIconBadge(isRead: Bool) -> some View {
+        if let iconName = appPrimaryIconName,
+           let uiImage = UIImage(named: iconName) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 34, height: 34)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(isRead ? Color.black.opacity(0.1) : Color(hex: "B8E9DF"), lineWidth: 1)
+                )
+        } else {
+            ZStack {
+                Circle()
+                    .fill(isRead ? Color.black.opacity(0.06) : Color(hex: "DDF7F3"))
+                    .frame(width: 34, height: 34)
+
+                Image(systemName: isRead ? "bell" : "bell.badge.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isRead ? .secondary : Color(hex: "167A8C"))
+            }
+        }
+    }
+
+    var appPrimaryIconName: String? {
+        guard
+            let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any],
+            let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
+            let files = primary["CFBundleIconFiles"] as? [String],
+            let iconName = files.last
+        else {
+            return nil
+        }
+        return iconName
     }
 }
 

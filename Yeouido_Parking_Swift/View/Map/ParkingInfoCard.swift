@@ -10,11 +10,23 @@ struct ParkingInfoCard: View {
     let availability: ParkingAvailability?
     let isLoading: Bool
     let errorMessage: String?
+    let onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(parkingSpot.shortDisplayName)
-                .font(.headline.weight(.bold))
+            HStack(alignment: .top, spacing: 12) {
+                Text(parkingSpot.shortDisplayName)
+                    .font(.headline.weight(.bold))
+                
+                Spacer()
+                
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Color.black.opacity(0.35))
+                }
+                .buttonStyle(.plain)
+            }
 
             Text(parkingSpot.address)
                 .font(.subheadline)
@@ -41,8 +53,9 @@ struct ParkingInfoCard: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(18)
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 178, alignment: .topLeading)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 22,

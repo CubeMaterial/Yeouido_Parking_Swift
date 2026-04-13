@@ -15,6 +15,14 @@ struct ParkingFilterSheet: View {
     let searchResults: [MapSearchResult]
     let onClose: () -> Void
     let onResultSelect: (MapSearchResult) -> Void
+    
+    private let primaryFilters: [MapMarkerFilter] = [
+        .all, .parking, .reservableFacility, .favoriteFacility
+    ]
+    
+    private let categoryFilters: [MapMarkerFilter] = [
+        .performance, .culture, .park, .food, .convenience, .otherFacility
+    ]
 
     var body: some View {
         GeometryReader { geometry in
@@ -108,30 +116,52 @@ struct ParkingFilterSheet: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(filterOptions) { filter in
-                        Button {
-                            selectedFilter = filter
-                        } label: {
-                            Text(filter.rawValue)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(selectedFilter == filter ? .white : filter.accentColor)
-                                .padding(.horizontal, 14)
-                                .frame(height: 42)
-                                .background(
-                                    Capsule()
-                                        .fill(selectedFilter == filter ? filter.accentColor : .white)
-                                )
-                                .overlay(
-                                    Capsule()
-                                        .stroke(filter.accentColor, lineWidth: 1.2)
-                                )
-                        }
-                        .buttonStyle(.plain)
+                    ForEach(primaryFilterOptions) { filter in
+                        filterChip(for: filter)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(categoryFilterOptions) { filter in
+                        filterChip(for: filter)
                     }
                 }
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    private var primaryFilterOptions: [MapMarkerFilter] {
+        filterOptions.filter { primaryFilters.contains($0) }
+    }
+    
+    private var categoryFilterOptions: [MapMarkerFilter] {
+        filterOptions.filter { categoryFilters.contains($0) }
+    }
+    
+    @ViewBuilder
+    private func filterChip(for filter: MapMarkerFilter) -> some View {
+        Button {
+            selectedFilter = filter
+        } label: {
+            Text(filter.rawValue)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(selectedFilter == filter ? .white : filter.accentColor)
+                .padding(.horizontal, 14)
+                .frame(height: 42)
+                .background(
+                    Capsule()
+                        .fill(selectedFilter == filter ? filter.accentColor : .white)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(filter.accentColor, lineWidth: 1.2)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private var parkingList: some View {

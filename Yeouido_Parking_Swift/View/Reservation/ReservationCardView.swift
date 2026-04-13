@@ -114,12 +114,12 @@ struct ReservationCardView: View {
     }
 
     private func formattedDateTime(_ text: String) -> String {
-        formatted(text, dateStyle: .abbreviated, timeStyle: .shortened)
+        ReservationDateFormatter.cardStartText(text)
     }
 
     private var durationText: String {
-        guard let start = parseServerDate(reservation.startDate),
-              let end = parseServerDate(reservation.endDate) else {
+        guard let start = ReservationDateFormatter.parseServerDate(reservation.startDate),
+              let end = ReservationDateFormatter.parseServerDate(reservation.endDate) else {
             return "-"
         }
 
@@ -141,46 +141,6 @@ struct ReservationCardView: View {
     private var imageURL: URL? {
         guard let image = facility?.image else { return nil }
         return resolvedImageURL(from: image)
-    }
-
-    private func formatted(
-        _ text: String,
-        dateStyle: Date.FormatStyle.DateStyle,
-        timeStyle: Date.FormatStyle.TimeStyle
-    ) -> String {
-        if let parsedDate = parseServerDate(text) {
-            return parsedDate.formatted(date: dateStyle, time: timeStyle)
-        }
-
-        return text
-    }
-
-    private func parseServerDate(_ text: String) -> Date? {
-        let isoWithFractional = ISO8601DateFormatter()
-        isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = isoWithFractional.date(from: text) { return date }
-
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        if let date = iso.date(from: text) { return date }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        let formats = [
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd HH:mm:ss.SSSSSS",
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
-        ]
-
-        for format in formats {
-            formatter.dateFormat = format
-            if let date = formatter.date(from: text) {
-                return date
-            }
-        }
-
-        return nil
     }
 
     private func resolvedImageURL(from rawValue: String) -> URL? {
@@ -268,7 +228,8 @@ private struct ReservationMetricChip: View {
             Text(value)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(tint)
-                .lineLimit(2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
