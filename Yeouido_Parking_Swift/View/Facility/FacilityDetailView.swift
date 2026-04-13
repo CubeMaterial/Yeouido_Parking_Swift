@@ -109,6 +109,7 @@ struct FacilityDetailView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 30)
             }
+            .safeAreaPadding(.top)
             .navigationTitle("시설 상세")
             .navigationBarTitleDisplayMode(.inline)
         }

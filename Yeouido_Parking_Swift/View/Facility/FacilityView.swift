@@ -46,6 +46,7 @@ struct FacilityView: View {
                     }
                 }
                 .navigationTitle("시설 목록")
+                .navigationBarTitleDisplayMode(.inline)
                 .task {
                     await vm.fetchFacilities()
                 }

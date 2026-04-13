@@ -40,11 +40,6 @@ struct ReservationFormView: View {
                     
                     // 상단 시설 정보 카드
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("예약하기")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.black)
-                        
                         Text(facility.name)
                             .font(.title3)
                             .fontWeight(.semibold)
@@ -158,6 +153,7 @@ struct ReservationFormView: View {
                         .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
                     }
                     .padding(.top, 4)
+                    .padding(.bottom, 50)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)

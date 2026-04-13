@@ -106,4 +106,22 @@ final class APIService {
             throw APIError(message: "예약 취소 실패")
         }
     }
+    
+    func updateReservationState(reservationId: Int, state: Int) async throws {
+        let url = URL(string: "\(baseURL)/reservation/\(reservationId)")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = ["reservation_state": state]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw APIError(message: "예약 상태 변경 실패")
+        }
+    }
 }
