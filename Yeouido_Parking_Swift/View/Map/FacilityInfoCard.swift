@@ -46,7 +46,7 @@ struct FacilityInfoCard: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 174, alignment: .topLeading)
+        .frame(minHeight: 192, alignment: .topLeading)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 22,

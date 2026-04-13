@@ -45,6 +45,7 @@ final class GlobalState: ObservableObject {
     @Published var routeRequestID = UUID()
     @Published var selectedMapFacilityID: Int?
     @Published var mapSelectionRequestID = UUID()
+    @Published var isMapFilterSheetPresented = false
     @Published var notifications: [AppNotification] = []
     @Published var favoriteFacilityIDs: Set<Int> = []
 
