@@ -39,26 +39,26 @@ struct FacilityMarker: View {
 
                 Image(systemName: isReservable ? "ticket.fill" : "mappin.circle.fill")
                     .font(.system(size: isSelected ? 20 : 17, weight: .bold))
-                    .foregroundStyle(isSelected ? .white : markerAccentColor)
+                    .foregroundStyle(.white)
             }
             .shadow(color: .black.opacity(0.14), radius: 8, y: 4)
 
             Rectangle()
-                .fill(isSelected ? markerAccentColor : Color.black.opacity(0.25))
+                .fill(markerAccentColor)
                 .frame(width: 2, height: isSelected ? 12 : 10)
         }
     }
 
     private var markerAccentColor: Color {
-        isReservable ? Color.orange : Color.teal
+        isReservable ? MapMarkerFilter.reservableFacility.accentColor : MapMarkerFilter.otherFacility.accentColor
     }
 
     private var markerBackgroundColor: Color {
-        isSelected ? markerAccentColor : Color.white.opacity(0.96)
+        markerAccentColor
     }
 
     private var markerBorderColor: Color {
-        isSelected ? markerAccentColor : Color.black.opacity(0.16)
+        isSelected ? Color.white : markerAccentColor.opacity(0.95)
     }
 
     private var badge: some View {
@@ -67,6 +67,6 @@ struct FacilityMarker: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(Color.orange, in: Capsule())
+            .background(MapMarkerFilter.reservableFacility.accentColor, in: Capsule())
     }
 }

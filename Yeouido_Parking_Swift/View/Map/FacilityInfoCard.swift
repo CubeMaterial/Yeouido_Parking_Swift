@@ -10,7 +10,7 @@ struct FacilityInfoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("예약 가능 시설")
+            Text("예약 시설")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(Color.orange)
 

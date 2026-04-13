@@ -9,6 +9,8 @@ struct ParkingMarker: View {
     let title: String
     let isSelected: Bool
 
+    private let accentColor = MapMarkerFilter.parking.accentColor
+
     var body: some View {
         VStack(spacing: 0) {
             if isSelected {
@@ -23,25 +25,25 @@ struct ParkingMarker: View {
 
             ZStack {
                 Circle()
-                    .stroke(isSelected ? Color.red : Color.black.opacity(0.55), lineWidth: isSelected ? 5 : 3)
+                    .stroke(isSelected ? Color.white : accentColor, lineWidth: isSelected ? 5 : 3)
                     .frame(width: isSelected ? 30 : 24, height: isSelected ? 30 : 24)
                     .background(
                         Circle()
-                            .fill(Color.white.opacity(0.95))
+                            .fill(accentColor)
                     )
 
                 Circle()
-                    .fill(isSelected ? Color.red : Color.black.opacity(0.78))
+                    .fill(isSelected ? Color.white : accentColor.opacity(0.9))
                     .frame(width: isSelected ? 12 : 9, height: isSelected ? 12 : 9)
             }
             .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
 
             Rectangle()
-                .fill(isSelected ? Color.red : Color.black.opacity(0.6))
+                .fill(accentColor)
                 .frame(width: 2.5, height: isSelected ? 18 : 14)
 
             Circle()
-                .fill(isSelected ? Color.red.opacity(0.2) : Color.black.opacity(0.14))
+                .fill(accentColor.opacity(0.2))
                 .frame(width: isSelected ? 10 : 8, height: isSelected ? 10 : 8)
                 .blur(radius: 1)
                 .offset(y: -2)

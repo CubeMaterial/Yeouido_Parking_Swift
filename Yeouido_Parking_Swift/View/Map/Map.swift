@@ -9,6 +9,8 @@ import MapKit
 import SwiftUI
 
 struct MapView: View {
+    private let floatingTabBarSpacing: CGFloat = 88
+
     @State private var searchText = ""
     @State private var isFilterSheetPresented = false
     @State private var selectedFilter: MapMarkerFilter = .all
@@ -54,23 +56,6 @@ struct MapView: View {
                     .padding(.top, 12)
 
                     Spacer()
-
-                    if let selectedParkingSpot {
-                        ParkingInfoCard(
-                            parkingSpot: selectedParkingSpot,
-                            availability: availabilityBySourceName[selectedParkingSpot.sourceName],
-                            isLoading: isLoadingAvailability,
-                            errorMessage: availabilityErrorMessage
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 5)
-                    } else if let selectedReservableFacility {
-                        FacilityInfoCard(
-                            facility: selectedReservableFacility
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 5)
-                    }
                 }
 
                 if isFilterSheetPresented {
@@ -100,6 +85,26 @@ struct MapView: View {
             .background(Color(.systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isFilterSheetPresented)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Group {
+                    if let selectedParkingSpot {
+                        ParkingInfoCard(
+                            parkingSpot: selectedParkingSpot,
+                            availability: availabilityBySourceName[selectedParkingSpot.sourceName],
+                            isLoading: isLoadingAvailability,
+                            errorMessage: availabilityErrorMessage
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, floatingTabBarSpacing)
+                    } else if let selectedReservableFacility {
+                        FacilityInfoCard(
+                            facility: selectedReservableFacility
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, floatingTabBarSpacing)
+                    }
+                }
+            }
             .task {
                 await loadFacilitiesIfNeeded()
             }

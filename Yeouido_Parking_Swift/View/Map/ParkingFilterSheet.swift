@@ -6,8 +6,6 @@
 import SwiftUI
 
 struct ParkingFilterSheet: View {
-    private let selectedColor = Color(hex: "63C9F2")
-
     @Binding var searchText: String
     @Binding var selectedFilter: MapMarkerFilter
     @Binding var selectedParkingSpotID: Int?
@@ -116,16 +114,16 @@ struct ParkingFilterSheet: View {
                         } label: {
                             Text(filter.rawValue)
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(selectedFilter == filter ? .white : .black)
+                                .foregroundStyle(selectedFilter == filter ? .white : filter.accentColor)
                                 .padding(.horizontal, 14)
                                 .frame(height: 42)
                                 .background(
                                     Capsule()
-                                        .fill(selectedFilter == filter ? selectedColor : .white)
+                                        .fill(selectedFilter == filter ? filter.accentColor : .white)
                                 )
                                 .overlay(
                                     Capsule()
-                                        .stroke(selectedFilter == filter ? selectedColor : .black, lineWidth: 1.2)
+                                        .stroke(filter.accentColor, lineWidth: 1.2)
                                 )
                         }
                         .buttonStyle(.plain)
