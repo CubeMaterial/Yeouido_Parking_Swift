@@ -15,7 +15,6 @@ struct ReservationListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // 🔥 배경
                 LinearGradient(
                     colors: [
                         Color(hex: "63C9F2"),
@@ -43,52 +42,35 @@ struct ReservationListView: View {
                             LazyVStack(spacing: 16) {
                                 ForEach(vm.reservations) { reservation in
                                     
-                                    NavigationLink {
-                                        ReservationDetailView(reservationId: reservation.id)
-                                    } label: {
-                                        ReservationCardView(reservation: reservation)
-                                    }
-                                    .buttonStyle(.plain)
+                                    ReservationCardView(
+                                        reservation: reservation,
+                                        onCancel: { id in
+                                            cancelReservation(id)
+                                        }
+                                    )
                                 }
                             }
-                            .padding()
+                            .frame(maxWidth: .infinity) // 🔥 핵심
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
+                            .padding(.bottom, 30)
                         }
-                        .scrollContentBackground(.hidden)
                         .background(Color.clear)
                     }
                 }
             }
             .navigationTitle("예약 내역")
-            
-            // 🔥 우상단 취소 버튼
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        cancelLatestReservation()
-                    } label: {
-                        Text("예약 취소")
-                            .font(.subheadline)
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-            
             .toolbarBackground(.hidden, for: .navigationBar)
-            .background(Color.clear)
-            
-            .task {
-                guard let userID = globalState.currentUserID else { return }
-                await vm.fetchReservations(userId: userID)
-            }
+        }
+        .task {
+            guard let userID = globalState.currentUserID else { return }
+            await vm.fetchReservations(userId: userID)
         }
     }
     
-    // 🔥 간단 예시: 가장 최근 예약 취소
-    private func cancelLatestReservation() {
-        guard let last = vm.reservations.first else { return }
-        
+    private func cancelReservation(_ reservationId: Int) {
         Task {
-            await vm.cancelReservation(reservationId: last.id)
+            await vm.cancelReservation(reservationId: reservationId)
             guard let userID = globalState.currentUserID else { return }
             await vm.fetchReservations(userId: userID)
         }

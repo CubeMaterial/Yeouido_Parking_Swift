@@ -49,6 +49,7 @@ struct ReservationView: View {
                 }
             }
             .navigationTitle("예약하기")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .background(Color.clear)
             .task {
