@@ -13,6 +13,7 @@ struct MenuDrawerView: View {
     @Binding var isDarkModeEnabled: Bool
     let onLoginTap: () -> Void
     @State private var isCustomerInfoPresented = false
+    @State private var isReservationListPresented = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -55,7 +56,17 @@ struct MenuDrawerView: View {
                         DrawerMenuButton(
                             title: "예약내역",
                             systemName: "calendar.badge.clock"
-                        ) {}
+                        ) {
+                            if globalState.userLoginStatus {
+                                isReservationListPresented = true
+                            } else {
+                                onLoginTap()
+                            }
+
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                isPresented = false
+                            }
+                        }
 
                         HStack(spacing: 14) {
                             Image(systemName: "moon.fill")
@@ -78,61 +89,82 @@ struct MenuDrawerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
 
-                    Spacer()
+                    Spacer(minLength: 28)
 
-                    if globalState.userLoginStatus {
-                        Button {
-                            globalState.logout()
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                                isPresented = false
+                    Group {
+                        if globalState.userLoginStatus {
+                            Button {
+                                globalState.logout()
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                    isPresented = false
+                                }
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.white)
+                                        .frame(width: 22)
+
+                                    Text("로그아웃")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(.white)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 18)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(hex: "F06D6D"),
+                                            Color(hex: "DC4D63")
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .shadow(color: Color(hex: "DC4D63").opacity(0.22), radius: 12, y: 8)
                             }
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(.red)
-                                    .frame(width: 22)
+                            .buttonStyle(.plain)
+                        } else {
+                            Button {
+                                onLoginTap()
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                    isPresented = false
+                                }
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: "person.badge.key.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.white)
+                                        .frame(width: 22)
 
-                                Text("로그아웃")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(.red)
+                                    Text("로그인 하기")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(.white)
 
-                                Spacer()
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 18)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(hex: "4E9CF9"),
+                                            Color(hex: "2F7AE5")
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .shadow(color: Color(hex: "2F7AE5").opacity(0.2), radius: 12, y: 8)
                             }
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 18)
-                            .background(Color.red.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 16)
-                    } else {
-                        Button {
-                            onLoginTap()
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                                isPresented = false
-                            }
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: "person.badge.key.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(Color(hex: "1C6DD0"))
-                                    .frame(width: 22)
-
-                                Text("로그인 하기")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(Color(hex: "1C6DD0"))
-
-                                Spacer()
-                            }
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 18)
-                            .background(Color(hex: "EEF5FF"))
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 16)
                     }
+                    .padding(.bottom, 112)
                 }
                 .padding(.horizontal, 20)
                 .frame(width: min(280, geometry.size.width * 0.74))
@@ -161,6 +193,10 @@ struct MenuDrawerView: View {
                         .padding(24)
                     }
                 }
+            }
+            .fullScreenCover(isPresented: $isReservationListPresented) {
+                ReservationListView()
+                    .environmentObject(globalState)
             }
         }
     }
