@@ -42,20 +42,20 @@ struct InquiryFloatingButtonView: View {
             } label: {
                 Group {
                     if isCompact {
-                        VStack(spacing: 4) {
+                        VStack(spacing: 7) {
                             Image(systemName: isExpanded ? "xmark" : "bubble.left.and.bubble.right.fill")
-                                .font(.system(size: 17, weight: .bold))
+                                .font(.system(size: 18, weight: .bold))
+                                .padding(.top, 2)
 
-                            Text("문의")
-                                .font(.system(size: 14, weight: .bold))
-
-                            Text("하기")
-                                .font(.system(size: 14, weight: .bold))
+                            Text("문의하기")
+                                .font(.system(size: 12, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
                         }
                         .foregroundStyle(.white)
-                        .frame(width: 78, height: 68)
+                        .frame(width: 78, height: 78)
                         .background(Color(hex: "ED9781"))
-                        .clipShape(RoundedRectangle(cornerRadius: 22))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
                         .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
                     } else {
                         HStack(spacing: 8) {
@@ -90,19 +90,17 @@ private struct FloatingActionItem: View {
         Button(action: action) {
             Group {
                 if isCompact {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 7) {
                         Image(systemName: systemName)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.system(size: 18, weight: .bold))
+                            .padding(.top, 2)
 
-                        Text(compactTitleLine1)
-                            .font(.system(size: 14, weight: .bold))
-
-                        if let compactTitleLine2 {
-                            Text(compactTitleLine2)
-                                .font(.system(size: 14, weight: .bold))
-                        }
+                        Text(title)
+                            .font(.system(size: 12, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
                     }
-                    .frame(width: 72, height: 72)
+                    .frame(width: 78, height: 78)
                 } else {
                     HStack(spacing: 8) {
                         Image(systemName: systemName)
@@ -122,22 +120,6 @@ private struct FloatingActionItem: View {
             .shadow(color: .black.opacity(0.12), radius: 10, y: 6)
         }
         .buttonStyle(.plain)
-    }
-
-    private var compactTitleLine1: String {
-        if title == "채팅문의" {
-            return "채팅"
-        }
-
-        return "전화"
-    }
-
-    private var compactTitleLine2: String? {
-        if title == "채팅문의" {
-            return "문의"
-        }
-
-        return "하기"
     }
 }
 
