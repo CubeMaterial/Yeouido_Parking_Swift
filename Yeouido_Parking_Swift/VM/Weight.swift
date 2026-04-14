@@ -25,11 +25,11 @@ func median(_ values: [Double]) -> Double {
     return s.count.isMultiple(of: 2) ? (s[m - 1] + s[m]) / 2 : s[m]
 }
 
-// Preprocess: 2025 traffic -> weekday/hour weights
+// Preprocess traffic rows into weekday/hour weights.
 func buildWeekdayWeights(_ rows: [TrafficRow], calendar: Calendar = .current) -> [Int: [String: Double]] {
     var buckets = [Int: [String: [Double]]]()
 
-    for row in rows where calendar.component(.year, from: row.date) == 2025 {
+    for row in rows {
         let day = isoWeekday(row.date, calendar: calendar)
         for h in hours {
             if let v = row.traffic[h] {
@@ -59,22 +59,67 @@ func buildWeekdayWeights(_ rows: [TrafficRow], calendar: Calendar = .current) ->
     return result
 }
 
-// Runtime: one anchor count -> all hours
+private func repairedAnchorWeight(for hour: String, in weights: [String: Double]) -> Double {
+    let eps = 1e-9
+
+    if let value = weights[hour], value > 0 {
+        return value
+    }
+
+    guard let anchorIndex = hours.firstIndex(of: hour) else {
+        return eps
+    }
+
+    var previousPositive: (index: Int, value: Double)?
+    for index in stride(from: anchorIndex - 1, through: 0, by: -1) {
+        let candidateHour = hours[index]
+        if let value = weights[candidateHour], value > 0 {
+            previousPositive = (index, value)
+            break
+        }
+    }
+
+    var nextPositive: (index: Int, value: Double)?
+    for index in (anchorIndex + 1)..<hours.count {
+        let candidateHour = hours[index]
+        if let value = weights[candidateHour], value > 0 {
+            nextPositive = (index, value)
+            break
+        }
+    }
+
+    switch (previousPositive, nextPositive) {
+    case let (.some(previous), .some(next)):
+        let distance = Double(next.index - previous.index)
+        guard distance > 0 else { return max(previous.value, eps) }
+        let progress = Double(anchorIndex - previous.index) / distance
+        let interpolated = previous.value + ((next.value - previous.value) * progress)
+        return max(interpolated, eps)
+    case let (.some(previous), nil):
+        return max(previous.value, eps)
+    case let (nil, .some(next)):
+        return max(next.value, eps)
+    case (nil, nil):
+        return eps
+    }
+}
+
+// Runtime: one anchor count -> all hours.
 func estimateParking(
     target: [String: Int],
     maxCapacity: Int,
     weekday: Int,
     weightsByWeekday: [Int: [String: Double]]
 ) -> [String: Int] {
-    let eps = 1e-9
     guard let anchor = target.first,
           hours.contains(anchor.key),
           let weights = weightsByWeekday[weekday] else { return [:] }
 
-    let anchorWeight = Swift.max(weights[anchor.key] ?? 0, eps)
+    let anchorWeight = repairedAnchorWeight(for: anchor.key, in: weights)
 
     return Dictionary(uniqueKeysWithValues: hours.map { h in
-        let raw = Double(anchor.value) * Swift.max(weights[h] ?? 0, eps) / anchorWeight
+        let targetWeight = Swift.max(weights[h] ?? 0, 0)
+        let raw = Double(anchor.value) * targetWeight / anchorWeight
         let clamped = Swift.min(Double(maxCapacity), Swift.max(0, raw))
         return (h, Int(clamped.rounded()))
     })
@@ -94,6 +139,7 @@ enum WeightPredictionError: Error {
     case invalidHeader
     case invalidData
     case invalidAnchorHour
+    case invalidWeights
 }
 
 struct WeightPredictionInput {
@@ -103,15 +149,51 @@ struct WeightPredictionInput {
     let maxCapacity: Int
 }
 
+private struct WeightPresetFile: Decodable {
+    struct Metadata: Decodable {
+        let location: String?
+        let base: String?
+        let hours: [String]
+        let weekdayBasis: String?
+        let holidayBasis: String?
+
+        enum CodingKeys: String, CodingKey {
+            case location
+            case base
+            case hours
+            case weekdayBasis = "weekday_basis"
+            case holidayBasis = "holiday_basis"
+        }
+    }
+
+    struct Profiles: Decodable {
+        let weekday: [String: Double]
+        let holiday: [String: Double]
+    }
+
+    let metadata: Metadata
+    let weights: Profiles
+}
+
 struct WeightPredictionEngine {
-    private let rows: [TrafficRow]
     private let calendar: Calendar
     private let weightsByWeekday: [Int: [String: Double]]
+    private let treatFixedHolidaysAsHoliday: Bool
 
     init(rows: [TrafficRow], calendar: Calendar = .current) {
-        self.rows = rows
         self.calendar = calendar
         self.weightsByWeekday = buildWeekdayWeights(rows, calendar: calendar)
+        self.treatFixedHolidaysAsHoliday = false
+    }
+
+    private init(
+        weightsByWeekday: [Int: [String: Double]],
+        calendar: Calendar = .current,
+        treatFixedHolidaysAsHoliday: Bool = false
+    ) {
+        self.calendar = calendar
+        self.weightsByWeekday = weightsByWeekday
+        self.treatFixedHolidaysAsHoliday = treatFixedHolidaysAsHoliday
     }
 
     /// `weight.csv` 같은 리소스 파일을 읽어 예측 엔진을 생성한다.
@@ -127,9 +209,33 @@ struct WeightPredictionEngine {
         return WeightPredictionEngine(rows: rows, calendar: calendar)
     }
 
-    /// CSV가 없을 때 화면 데모/기능 연결용으로 사용하는 기본 엔진
+    static func makeFromJSON(
+        url: URL,
+        calendar: Calendar = .current
+    ) throws -> WeightPredictionEngine {
+        let data = try Data(contentsOf: url)
+        let preset = try JSONDecoder().decode(WeightPresetFile.self, from: data)
+        let weightsByWeekday = try makeWeightsByWeekday(from: preset)
+        return WeightPredictionEngine(
+            weightsByWeekday: weightsByWeekday,
+            calendar: calendar,
+            treatFixedHolidaysAsHoliday: true
+        )
+    }
+
+    /// 기본 엔진은 번들 JSON을 우선 사용하고, 실패하면 샘플 프로필로 폴백한다.
     static func makeDefault(calendar: Calendar = .current) -> WeightPredictionEngine {
-        WeightPredictionEngine(rows: makeSampleRows2025(calendar: calendar), calendar: calendar)
+        if let bundledURL = bundledWeightsURL(),
+           let engine = try? makeFromJSON(url: bundledURL, calendar: calendar) {
+            return engine
+        }
+
+        if let sourceURL = sourceWeightsURL(),
+           let engine = try? makeFromJSON(url: sourceURL, calendar: calendar) {
+            return engine
+        }
+
+        return WeightPredictionEngine(rows: makeSampleRows(calendar: calendar), calendar: calendar)
     }
 
     func predict(_ input: WeightPredictionInput) throws -> [String: Int] {
@@ -137,7 +243,7 @@ struct WeightPredictionEngine {
             throw WeightPredictionError.invalidAnchorHour
         }
 
-        let weekday = isoWeekday(input.date, calendar: calendar)
+        let weekday = predictionWeekday(for: input.date)
         return estimateParking(
             target: [input.anchorHour: input.anchorCount],
             maxCapacity: input.maxCapacity,
@@ -164,6 +270,89 @@ struct WeightPredictionEngine {
 }
 
 private extension WeightPredictionEngine {
+    func predictionWeekday(for date: Date) -> Int {
+        if treatFixedHolidaysAsHoliday,
+           Self.isFixedHoliday(date, calendar: calendar) {
+            return 7
+        }
+
+        return isoWeekday(date, calendar: calendar)
+    }
+
+    static func makeWeightsByWeekday(from preset: WeightPresetFile) throws -> [Int: [String: Double]] {
+        let declaredHours = Set(preset.metadata.hours)
+        guard Set(hours).isSubset(of: declaredHours) else {
+            throw WeightPredictionError.invalidWeights
+        }
+
+        let weekdayWeights = try validatedProfile(preset.weights.weekday)
+        let holidayWeights = try validatedProfile(preset.weights.holiday)
+
+        var output: [Int: [String: Double]] = [:]
+        for day in 1...5 {
+            output[day] = weekdayWeights
+        }
+        output[6] = holidayWeights
+        output[7] = holidayWeights
+
+        return output
+    }
+
+    static func validatedProfile(_ rawProfile: [String: Double]) throws -> [String: Double] {
+        let profile = Dictionary(uniqueKeysWithValues: hours.map { hour in
+            (hour, Swift.max(rawProfile[hour] ?? -1, 0))
+        })
+
+        guard hours.allSatisfy({ rawProfile[$0] != nil }),
+              profile.values.contains(where: { $0 > 0 }) else {
+            throw WeightPredictionError.invalidWeights
+        }
+
+        return profile
+    }
+
+    static func bundledWeightsURL() -> URL? {
+        if let rootURL = Bundle.main.url(forResource: "yeouido_weights_2024", withExtension: "json") {
+            return rootURL
+        }
+
+        return Bundle.main.url(
+            forResource: "yeouido_weights_2024",
+            withExtension: "json",
+            subdirectory: "VM"
+        )
+    }
+
+    static func sourceWeightsURL() -> URL? {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("yeouido_weights_2024.json")
+
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return nil
+        }
+
+        return url
+    }
+
+    static func isFixedHoliday(_ date: Date, calendar: Calendar) -> Bool {
+        let components = calendar.dateComponents([.month, .day], from: date)
+        guard let month = components.month, let day = components.day else {
+            return false
+        }
+
+        return Set([
+            "1-1",
+            "3-1",
+            "5-5",
+            "6-6",
+            "8-15",
+            "10-3",
+            "10-9",
+            "12-25"
+        ]).contains("\(month)-\(day)")
+    }
+
     static func parseCSV(_ text: String) throws -> [TrafficRow] {
         let lines = text
             .split(whereSeparator: \.isNewline)
@@ -231,11 +420,11 @@ private extension WeightPredictionEngine {
         return nil
     }
 
-    static func makeSampleRows2025(calendar: Calendar) -> [TrafficRow] {
+    static func makeSampleRows(calendar: Calendar) -> [TrafficRow] {
         var rows: [TrafficRow] = []
         let base = calendar.date(from: DateComponents(year: 2025, month: 1, day: 1)) ?? Date()
 
-        // 8주치 샘플(56일)로 요일별 패턴을 만든다.
+        // 8주치 샘플(56일)로 폴백용 패턴을 만든다.
         for offset in 0..<56 {
             guard let date = calendar.date(byAdding: .day, value: offset, to: base) else { continue }
             let weekday = isoWeekday(date, calendar: calendar)
