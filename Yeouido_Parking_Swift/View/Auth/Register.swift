@@ -13,6 +13,8 @@ struct SignupView: View {
     @State private var notice = ""
     @State private var isSubmitting = false
     @State private var showSignupCompleteAlert = false
+    @State private var isPasswordVisible = false
+    @State private var isConfirmPasswordVisible = false
 
     init(prefilledEmail: String = "", prefilledPassword: String = "") {
         _email = State(initialValue: prefilledEmail)
@@ -37,10 +39,19 @@ struct SignupView: View {
                     Spacer(minLength: 32)
 
                     VStack(spacing: 0) {
+                        Text("CREATE ACCOUNT")
+                            .font(.system(size: 12, weight: .bold))
+                            .kerning(1.2)
+                            .foregroundStyle(Color(hex: "#167A8C"))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: "#EAF7FA"))
+                            .clipShape(Capsule())
+
                         Text("회원가입")
                             .font(.system(size: 34, weight: .bold))
                             .foregroundColor(Color(hex: "#1F2937"))
-                            .padding(.top, 6)
+                            .padding(.top, 10)
 
                         Text("계정을 만들고 서비스를 이용해 보세요")
                             .font(.system(size: 17, weight: .medium))
@@ -63,7 +74,7 @@ struct SignupView: View {
 
                             SignupInputField(
                                 placeholder: "전화번호",
-                                text: $phoneNumber,
+                                text: phoneNumberDisplayBinding,
                                 keyboardType: .phonePad
                             )
                             .textContentType(.telephoneNumber)
@@ -71,12 +82,14 @@ struct SignupView: View {
                             SignupSecureInputField(
                                 placeholder: "비밀번호",
                                 text: $password,
+                                isVisible: $isPasswordVisible,
                                 fieldID: "signup-password"
                             )
 
                             SignupSecureInputField(
                                 placeholder: "비밀번호 확인",
                                 text: $confirmPassword,
+                                isVisible: $isConfirmPasswordVisible,
                                 fieldID: "signup-confirm-password"
                             )
 
@@ -182,6 +195,36 @@ struct SignupView: View {
         notice.contains("전송") ? .secondary : .red
     }
 
+    private var phoneNumberDisplayBinding: Binding<String> {
+        Binding(
+            get: {
+                formatPhoneNumberForDisplay(phoneNumber)
+            },
+            set: { newValue in
+                let digitsOnly = String(newValue.filter(\.isNumber).prefix(11))
+                phoneNumber = digitsOnly
+            }
+        )
+    }
+
+    private func formatPhoneNumberForDisplay(_ value: String) -> String {
+        let digits = String(value.filter(\.isNumber).prefix(11))
+        guard !digits.isEmpty else { return "" }
+
+        if digits.count <= 3 {
+            return digits
+        }
+        if digits.count <= 7 {
+            let first = digits.prefix(3)
+            let second = digits.dropFirst(3)
+            return "\(first)-\(second)"
+        }
+        let first = digits.prefix(3)
+        let second = digits.dropFirst(3).prefix(4)
+        let third = digits.dropFirst(7)
+        return "\(first)-\(second)-\(third)"
+    }
+
     private func sendVerificationCode() {
         let normalized = normalizedEmail(email)
         let normalizedPhone = normalizedPhoneNumber(phoneNumber)
@@ -192,7 +235,7 @@ struct SignupView: View {
         }
 
         guard isValidPhoneNumber(normalizedPhone) else {
-            notice = "전화번호를 확인해 주세요."
+            notice = "전화번호 형식을 확인해 주세요. (예: 01012345678)"
             return
         }
 
@@ -224,7 +267,7 @@ struct SignupView: View {
         }
 
         guard isValidPhoneNumber(normalizedPhone) else {
-            notice = "전화번호를 확인해 주세요."
+            notice = "전화번호 형식을 확인해 주세요. (예: 01012345678)"
             return
         }
 
@@ -291,16 +334,33 @@ private struct SignupInputField: View {
 private struct SignupSecureInputField: View {
     let placeholder: String
     @Binding var text: String
+    @Binding var isVisible: Bool
     let fieldID: String
 
     var body: some View {
-        SecureField(placeholder, text: $text)
+        HStack(spacing: 10) {
+            Group {
+                if isVisible {
+                    TextField(placeholder, text: $text)
+                } else {
+                    SecureField(placeholder, text: $text)
+                }
+            }
             .id(fieldID)
             .textContentType(.newPassword)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .font(.system(size: 18, weight: .medium))
             .foregroundColor(Color(hex: "#1F2937"))
+
+            Button {
+                isVisible.toggle()
+            } label: {
+                Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(hex: "#7A8699"))
+            }
+        }
             .padding(.horizontal, 20)
             .frame(height: 58)
             .background(Color(hex: "#F6F8FA"))

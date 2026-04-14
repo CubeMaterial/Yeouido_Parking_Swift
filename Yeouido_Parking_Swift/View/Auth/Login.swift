@@ -11,6 +11,7 @@ struct LoginView: View {
     @State private var showSignupPage = false
     @State private var signupViewVersion = 0
     @State private var isSubmitting = false
+    @State private var isPasswordVisible = false
 
     var body: some View {
         NavigationStack {
@@ -32,33 +33,69 @@ struct LoginView: View {
                         VStack(spacing: 20) {
                             ParkingHeaderArtwork()
 
-                            VStack(spacing: 8) {
+                            VStack(spacing: 10) {
                                 Text("로그인")
-                                    .font(.system(size: 30, weight: .bold))
+                                    .font(.system(size: 32, weight: .heavy))
                                     .foregroundStyle(Color(red: 0.19, green: 0.28, blue: 0.39))
 
-                                Text("서비스를 이용하려면 로그인해 주세요")
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.secondary)
+                                Text("여한이 없을까? 계정으로 접속해 주세요")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Color(red: 0.35, green: 0.41, blue: 0.50))
                             }
 
-                            VStack(spacing: 12) {
-                                TextField("아이디 또는 이메일", text: $email)
-                                    .textInputAutocapitalization(.never)
-                                    .keyboardType(.emailAddress)
-                                    .autocorrectionDisabled()
-                                    .padding(.horizontal, 16)
-                                    .frame(height: 52)
-                                    .background(Color(red: 0.95, green: 0.96, blue: 0.98))
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                            VStack(spacing: 14) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("이메일")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(Color(red: 0.39, green: 0.45, blue: 0.54))
 
-                                SecureField("비밀번호", text: $password)
-                                    .padding(.horizontal, 16)
-                                    .frame(height: 52)
-                                    .background(Color(red: 0.95, green: 0.96, blue: 0.98))
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                                    TextField("example@email.com", text: $email)
+                                        .textInputAutocapitalization(.never)
+                                        .keyboardType(.emailAddress)
+                                        .autocorrectionDisabled()
+                                        .padding(.horizontal, 16)
+                                        .frame(height: 54)
+                                        .background(Color(red: 0.96, green: 0.97, blue: 0.99))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18)
+                                                .stroke(Color(red: 0.86, green: 0.89, blue: 0.95), lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                }
 
-                                Text("비밀번호는 8자 이상 가능합니다.")
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("비밀번호")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(Color(red: 0.39, green: 0.45, blue: 0.54))
+
+                                    HStack(spacing: 10) {
+                                        Group {
+                                            if isPasswordVisible {
+                                                TextField("비밀번호 입력", text: $password)
+                                            } else {
+                                                SecureField("비밀번호 입력", text: $password)
+                                            }
+                                        }
+
+                                        Button {
+                                            isPasswordVisible.toggle()
+                                        } label: {
+                                            Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(Color(red: 0.49, green: 0.55, blue: 0.64))
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .frame(height: 54)
+                                    .background(Color(red: 0.96, green: 0.97, blue: 0.99))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(Color(red: 0.86, green: 0.89, blue: 0.95), lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                                }
+
+                                Text("비밀번호는 8자 이상으로 입력해 주세요.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
