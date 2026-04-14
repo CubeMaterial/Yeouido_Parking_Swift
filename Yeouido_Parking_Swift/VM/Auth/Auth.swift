@@ -177,10 +177,13 @@ func isValidSignupPassword(_ value: String) -> Bool {
 }
 
 func normalizedPhoneNumber(_ value: String) -> String {
-    value.trimmingCharacters(in: .whitespacesAndNewlines)
+    value.filter(\.isNumber)
 }
 
 func isValidPhoneNumber(_ value: String) -> Bool {
-    let digits = value.filter(\.isNumber)
-    return (10...11).contains(digits.count)
+    let digits = normalizedPhoneNumber(value)
+    return digits.range(
+        of: #"^01(?:0|1|6|7|8|9)\d{7,8}$"#,
+        options: .regularExpression
+    ) != nil
 }
