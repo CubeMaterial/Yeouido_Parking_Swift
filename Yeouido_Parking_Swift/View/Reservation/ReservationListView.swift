@@ -64,15 +64,11 @@ struct ReservationListView: View {
                 }
             }
             .navigationTitle("예약 내역")
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
+                    Button("닫기") {
                         dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
                     }
                 }
             }
